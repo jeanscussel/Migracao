@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timeline Interativa de Migração</title>
+
+    <style>
+        /* --- Configuração Global e Variáveis --- */
+        :root {
+            --cor-primaria: #4285F4; /* Azul Google */
+            --cor-destaque: #DB4437; /* Vermelho Google */
+            --cor-texto: #333;
+            --cor-texto-leve: #666;
+            --cor-fundo: #f4f4f4;
+            --cor-linha: #e0e0e0;
+            --cor-card: #ffffff;
+            --sombra-card: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --sombra-card-ativa: 0 8px 20px rgba(0, 0, 0, 0.12);
+            --item-width: 320px; /* Largura fixa de cada item */
+            --item-spacing: 40px; /* Espaçamento entre os itens */
+        }
+
+        /* --- Reset e Padrões --- */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--cor-fundo);
+            color: var(--cor-texto);
+            display: grid;
+            place-items: center;
+            line-height: 1.6;
+        }
+
+        /* --- Estrutura Principal da Timeline --- */
+        .timeline-container {
+            width: 90vw;
+            max-width: 1000px;
+            margin: 40px auto;
+        }
+
+        .timeline-viewport {
+            overflow: hidden;
+            position: relative;
+            cursor: grab;
+        }
+
+        /* A "faixa" que contém todos os itens e desliza */
+        .timeline-track {
+            display: flex;
+            position: relative;
+            padding: 150px 0; /* Espaço vertical para os cards e datas */
+            
+            /* A animação de deslizamento suave */
+            transition: transform 0.6s cubic-bezier(0.77, 0, 0.175, 1);
+        }
+
+        /* A linha horizontal central */
+        .timeline-track::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: var(--cor-linha);
+            top: 150px; /* Alinhado com o padding vertical */
+            z-index: 0;
+        }
+
+        /* --- Estilo de Cada Item --- */
+        .timeline-item {
+            /* Define a largura e o espaçamento de forma previsível.
+             Largura: var(--item-width)
+             Espaçamento: var(--item-spacing) / 2 em cada lado
+            */
+            width: var(--item-width);
+            flex-shrink: 0;
+            padding: 0 calc(var(--item-spacing) / 2);
+            box-sizing: content-box; /* Garante que padding não afete a largura */
+            position: relative;
+            text-align: center;
+            z-index: 1;
+        }
+
+        /* O marcador circular na linha */
+        .timeline-marker {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--cor-fundo);
+            border: 4px solid var(--cor-linha);
+            position: absolute;
+            top: 150px; /* Alinhado com a linha */
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+            transition: all 0.4s ease;
+        }
+
+        /* O card de conteúdo (acima) */
+        .timeline-card {
+            width: 100%;
+            position: absolute;
+            bottom: 190px; /* 150px (centro) + 22px (marcador) + 18px (gap) */
+            left: 0;
+            background: var(--cor-card);
+            border-radius: 8px;
+            box-shadow: var(--sombra-card);
+            padding: 20px;
+            text-align: left;
+            
+            /* Define a origem da transformação para o "zoom" */
+            transform-origin: bottom center;
+
+            /* Efeito de Foco (Inativo) */
+            transform: scale(0.9);
+            opacity: 0.7;
+            transition: all 0.4s ease;
+        }
+
+        .timeline-card h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--cor-primaria);
+            margin-bottom: 8px;
+        }
+
+        .timeline-card p {
+            font-size: 0.9rem;
+            color: var(--cor-texto-leve);
+        }
+
+        /* A data (abaixo) */
+        .timeline-date {
+            position: absolute;
+            top: 190px; /* 150px (centro) + 22px (marcador) + 18px (gap) */
+            left: 0;
+            width: 100%;
+            font-weight: 600;
+            color: var(--cor-texto-leve);
+            font-size: 0.9rem;
+        }
+
+        /* --- Estilo de Foco (Ativo) --- */
+        .timeline-item.active .timeline-card {
+            transform: scale(1.05);
+            opacity: 1;
+            box-shadow: var(--sombra-card-ativa);
+        }
+
+        .timeline-item.active .timeline-marker {
+            background: var(--cor-destaque);
+            border-color: var(--cor-destaque);
+            transform: translate(-50%, -50%) scale(1.1);
+        }
+
+        .timeline-item.active .timeline-date {
+            color: var(--cor-texto);
+        }
+
+
+        /* --- Navegação (Botões) --- */
+        .timeline-nav {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .timeline-nav button {
+            background: var(--cor-primaria);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        .timeline-nav button:hover:not(:disabled) {
+            background: #1a73e8; /* Azul Google mais escuro */
+        }
+
+        .timeline-nav button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="timeline-container">
+        
+        <div class="timeline-viewport" id="timelineViewport">
+            <div class="timeline-track" id="timelineTrack">
+                </div>
+        </div>
+        
+        <div class="timeline-nav">
+            <button id="prevBtn">&lt; VOLTAR</button>
+            <button id="nextBtn">AVANÇAR &gt;</button>
+        </div>
+    </div>
+
+
+    <script>
+        // --- ETAPA 1: CONFIGURAÇÃO DOS DADOS ---
+        // Para atualizar a timeline, basta editar este array de objetos.
+        const timelineData=[
+          {date:"01/11/2025", title:"Planejamento e Kick-off", description:"Início oficial do projeto"}
+        ];
+
+        // --- ETAPA 2: LÓGICA DA TIMELINE ---
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- 2.1: Selecionar Elementos do DOM ---
+            const viewport = document.getElementById('timelineViewport');
+            const track = document.getElementById('timelineTrack');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+
+            let itemElements = []; // Array para guardar os elementos dos itens
+            let currentIndex = 0;  // Rastreia o item ativo
+
+            // --- 2.2: Função para Renderizar os Itens ---
+            // Lê os dados de `timelineData` e cria o HTML
+            function renderTimeline() {
+                track.innerHTML = ''; // Limpa o conteúdo existente
+                
+                timelineData.forEach(item => {
+                    const itemEl = document.createElement('div');
+                    itemEl.className = 'timeline-item';
+                    
+                    itemEl.innerHTML = `
+                        <div class="timeline-card">
+                            <h3>${item.title}</h3>
+                            <p>${item.description}</p>
+                        </div>
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-date">${item.date}</div>
+                    `;
+                    
+                    track.appendChild(itemEl);
+                });
+
+                // Guarda referências aos elementos criados
+                itemElements = Array.from(track.children);
+            }
+
+            // --- 2.3: Função Principal de Navegação (A Mágica) ---
+            // Move a faixa para centralizar o item no `index` especificado
+            function goToSlide(index) {
+                if (index < 0 || index >= itemElements.length) return;
+
+                currentIndex = index;
+                
+                const item = itemElements[index];
+                
+                // Cálculo de centralização:
+                // 1. Pega o centro do viewport (ex: 500px)
+                const viewportCenter = viewport.offsetWidth / 2;
+                // 2. Pega o centro do item (posição à esquerda + metade da largura)
+                const itemCenter = item.offsetLeft + (item.offsetWidth / 2);
+                
+                // 3. Calcula o quanto a faixa precisa deslizar
+                // O objetivo é fazer itemCenter coincidir com viewportCenter
+                const translateX = viewportCenter - itemCenter;
+
+                // Aplica a transformação
+                track.style.transform = `translateX(${translateX}px)`;
+
+                // Atualiza as classes e botões
+                updateClasses();
+                updateButtons();
+            }
+
+            // --- 2.4: Funções Auxiliares ---
+
+            // Atualiza a classe '.active'
+            function updateClasses() {
+                itemElements.forEach((el, i) => {
+                    el.classList.toggle('active', i === currentIndex);
+                });
+            }
+
+            // Habilita/Desabilita os botões de navegação
+            function updateButtons() {
+                prevBtn.disabled = (currentIndex === 0);
+                nextBtn.disabled = (currentIndex === itemElements.length - 1);
+            }
+
+            // --- 2.5: Adicionar Ouvintes de Evento ---
+
+            // Botão "Avançar"
+            nextBtn.addEventListener('click', () => {
+                if (currentIndex < itemElements.length - 1) {
+                    goToSlide(currentIndex + 1);
+                }
+            });
+
+            // Botão "Voltar"
+            prevBtn.addEventListener('click', () => {
+                if (currentIndex > 0) {
+                    goToSlide(currentIndex - 1);
+                }
+            });
+
+            // Re-centraliza em caso de redimensionamento da janela
+            window.addEventListener('resize', () => {
+                // Usamos um pequeno timeout para evitar cálculos excessivos durante o resize
+                setTimeout(() => {
+                    goToSlide(currentIndex);
+                }, 100);
+            });
+
+
+            // --- 2.6: Inicialização ---
+            renderTimeline(); // Cria o HTML
+            goToSlide(0);     // Centraliza o primeiro item
+        });
+    </script>
+</body>
+</html>

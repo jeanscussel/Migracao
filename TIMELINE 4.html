@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timeline Interativa de Migração</title>
+    
+    <style>
+        /* --- Configurações Globais e do Body --- */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow-x: hidden; /* Previne scroll horizontal na página */
+        }
+
+        h2 {
+            text-align: center;
+            color: #222;
+            font-weight: 600;
+        }
+
+        /* --- Container Principal da Timeline --- */
+        .timeline-container {
+            position: relative;
+            width: 90%;
+            /* Limita a largura máxima para design e legibilidade */
+            max-width: 900px; 
+            margin: 40px auto;
+            /* Espaço para os botões de navegação nas laterais */
+            padding: 0 60px; 
+            box-sizing: border-box;
+        }
+
+        /* --- Viewport (A "Janela" Visível) --- */
+        .timeline-viewport {
+            position: relative;
+            width: 100%;
+            /* Oculta os itens que estão fora da janela */
+            overflow: hidden; 
+        }
+
+        /* A linha horizontal fixa no centro */
+        .timeline-viewport::after {
+            content: '';
+            position: absolute;
+            /* Posiciona a linha no centro vertical */
+            top: 50%; 
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: #e0e0e0;
+            /* Centraliza a linha de 4px perfeitamente */
+            transform: translateY(-2px); 
+            z-index: 1; /* Fica atrás dos marcadores */
+        }
+
+        /* --- Slider (O Container que se Move) --- */
+        .timeline-slider {
+            display: flex; /* Coloca os itens lado a lado */
+            position: relative;
+            /* Espaço para os cards crescerem (zoom) */
+            padding: 40px 0; 
+            /* Esta é a animação de deslizamento! */
+            transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            z-index: 2; /* Fica na frente da linha */
+        }
+
+        /* --- Cada Item Individual da Timeline --- */
+        .timeline-item {
+            /* Define um tamanho fixo para cada item */
+            flex: 0 0 300px; 
+            width: 300px;
+            padding: 0 15px; /* Espaçamento entre os itens */
+            box-sizing: border-box;
+            
+            /* Alinha o card, marcador e data verticalmente */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative; /* Para o z-index do marcador */
+
+            /* REQUISITO-CHAVE: Efeito de Foco (Zoom e Opacidade)
+              Por padrão, itens estão "desfocados".
+            */
+            opacity: 0.7;
+            transform: scale(0.9);
+            /* Anima a mudança de foco */
+            transition: transform 0.4s ease, opacity 0.4s ease;
+        }
+
+        /* O item ativo (centralizado) fica em destaque */
+        .timeline-item.active {
+            opacity: 1;
+            transform: scale(1.05); /* Efeito de zoom sutil */
+        }
+
+        /* --- Card de Conteúdo (Acima da Linha) --- */
+        .timeline-card {
+            order: 1; /* Aparece primeiro (no topo) */
+            width: 100%;
+            background: #ffffff;
+            border-radius: 8px;
+            /* Sombra sutil estilo Material Design */
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+            padding: 20px;
+            margin-bottom: 25px; /* Espaço até o marcador */
+            box-sizing: border-box;
+            text-align: left;
+        }
+
+        .timeline-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.15em;
+            color: #4a86e8; /* Um azul "Google" */
+        }
+
+        .timeline-card p {
+            margin: 0;
+            font-size: 0.9em;
+            line-height: 1.5;
+            color: #555;
+        }
+
+        /* --- Marcador (Círculo na Linha) --- */
+        .timeline-marker {
+            order: 2; /* Aparece no meio */
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #ffffff; /* Fundo branco para "cortar" a linha */
+            /* Borda grossa na cor de destaque */
+            border: 4px solid #4a86e8; 
+            z-index: 2; /* Fica acima da linha */
+            position: relative; /* Garante o z-index */
+        }
+
+        /* --- Data (Abaixo da Linha) --- */
+        .timeline-date {
+            order: 3; /* Aparece por último (embaixo) */
+            margin-top: 20px;
+            font-weight: 600;
+            font-size: 0.95em;
+            color: #333;
+        }
+
+        /* --- Botões de Navegação --- */
+        .timeline-nav {
+            position: absolute;
+            top: 50%; /* Alinha verticalmente com a linha */
+            transform: translateY(-50%);
+            z-index: 10;
+            background: #ffffff;
+            border: 1px solid #ddd;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #4a86e8;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+            transition: all 0.3s ease;
+        }
+
+        .timeline-nav:hover:not(:disabled) {
+            background: #f0f0f0;
+            transform: translateY(-50%) scale(1.05);
+        }
+
+        /* Estado desabilitado dos botões */
+        .timeline-nav:disabled {
+            cursor: not-allowed;
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
+        #prevBtn {
+            left: 5px; /* Posição do botão "Voltar" */
+        }
+
+        #nextBtn {
+            right: 5px; /* Posição do botão "Avançar" */
+        }
+
+    </style>
+</head>
+<body>
+
+    <h2>Cronograma da Migração do Sistema</h2>
+
+    <div class="timeline-container">
+        
+        <div class="timeline-viewport" id="timelineViewport">
+            <div class="timeline-slider" id="timelineSlider">
+                </div>
+        </div>
+
+        <button id="prevBtn" class="timeline-nav">&lt;</button>
+        <button id="nextBtn" class="timeline-nav">&gt;</button>
+    </div>
+
+
+    <script>
+        
+        // REQUISITO-CHAVE: Dados da timeline
+        // Para atualizar, basta editar este array de objetos.
+        const timelineData = [
+          {
+            date: "01/11/2025",
+            title: "Planejamento e Kick-off",
+            description: "Início oficial do projeto, definição de escopo e equipes de trabalho."
+          },
+          {
+            date: "15/12/2025",
+            title: "Desenvolvimento - Fase 1",
+            description: "Migração dos módulos de clientes e configuração inicial do ambiente."
+          },
+          {
+            date: "10/01/2026",
+            title: "Testes Internos (UAT)",
+            description: "Equipes internas testam os fluxos principais e validam os dados migrados."
+          },
+          {
+            date: "31/01/2026",
+            title: "Go-Live (Migração Final)",
+            description: "Virada do sistema e início da operação no novo ambiente de produção."
+          },
+          {
+            date: "15/02/2026",
+            title: "Suporte Pós-GoLive",
+            description: "Período de acompanhamento intensivo e ajustes finos no novo sistema."
+          }
+          // Adicione mais objetos aqui para mais eventos
+        ];
+
+
+        /**
+         * Aguarda o carregamento completo do DOM para executar o script.
+         */
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- Seleção dos Elementos DOM ---
+            const slider = document.getElementById('timelineSlider');
+            const viewport = document.getElementById('timelineViewport');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+
+            // --- Variável de Estado ---
+            let currentIndex = 0; // Começa no primeiro item
+
+            /**
+             * Função: renderTimeline
+             * Objetivo: Ler o array `timelineData` e criar o HTML para cada item.
+             */
+            function renderTimeline() {
+                // Limpa o slider antes de adicionar novos itens
+                slider.innerHTML = ''; 
+
+                timelineData.forEach((item, index) => {
+                    // Cria o elemento <div> principal do item
+                    const itemEl = document.createElement('div');
+                    itemEl.className = 'timeline-item';
+                    itemEl.dataset.index = index; // Armazena o índice para referência
+
+                    // Define o HTML interno do item
+                    itemEl.innerHTML = `
+                        <div class="timeline-card">
+                            <h3>${item.title}</h3>
+                            <p>${item.description}</p>
+                        </div>
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-date">${item.date}</div>
+                    `;
+                    
+                    // Adiciona o item criado ao slider
+                    slider.appendChild(itemEl);
+                });
+
+                // Após renderizar, atualiza a UI para o estado inicial (index 0)
+                updateTimeline();
+            }
+
+            /**
+             * Função: updateTimeline
+             * Objetivo: O cérebro da timeline.
+             * 1. Centraliza o item `currentIndex`.
+             * 2. Aplica a classe `.active` ao item correto.
+             * 3. Habilita/desabilita os botões de navegação.
+             */
+            function updateTimeline() {
+                const items = document.querySelectorAll('.timeline-item');
+                
+                if (items.length === 0) return; // Não faz nada se não houver itens
+
+                // Pega o elemento do item ativo
+                const activeItem = items[currentIndex];
+
+                // --- 1. Lógica de Centralização (O "Coração" do Script) ---
+                
+                // Largura da "janela" visível
+                const viewportWidth = viewport.offsetWidth;
+                
+                // O ponto central da "janela" (ex: 900px / 2 = 450px)
+                const viewportCenter = viewportWidth / 2;
+
+                // O ponto central do *item* (posição_esquerda + metade_da_largura)
+                const itemCenter = activeItem.offsetLeft + (activeItem.offsetWidth / 2);
+                
+                // O valor que o slider precisa deslizar para a esquerda
+                // Se o centro do item está em 600px e o centro do viewport em 450px,
+                // o slider precisa mover -150px (450 - 600).
+                const translateX = viewportCenter - itemCenter;
+
+                // Aplica o transform com o valor calculado
+                slider.style.transform = `translateX(${translateX}px)`;
+
+                // --- 2. Lógica de Foco (Classe Ativa) ---
+                items.forEach((item, index) => {
+                    if (index === currentIndex) {
+                        item.classList.add('active');
+                    } else {
+                        item.classList.remove('active');
+                    }
+                });
+
+                // --- 3. Lógica dos Botões ---
+                // Desabilita "Voltar" se estiver no primeiro item
+                prevBtn.disabled = (currentIndex === 0);
+                // Desabilita "Avançar" se estiver no último item
+                nextBtn.disabled = (currentIndex === timelineData.length - 1);
+            }
+
+            /**
+             * Função: navigate
+             * Objetivo: Mover para o próximo item ou anterior.
+             * @param {string} direction - 'next' ou 'prev'
+             */
+            function navigate(direction) {
+                if (direction === 'next' && currentIndex < timelineData.length - 1) {
+                    currentIndex++;
+                } else if (direction === 'prev' && currentIndex > 0) {
+                    currentIndex--;
+                }
+                
+                // Chama a atualização da UI após mudar o índice
+                updateTimeline();
+            }
+
+            // --- Event Listeners (Ouvintes de Eventos) ---
+            prevBtn.addEventListener('click', () => navigate('prev'));
+            nextBtn.addEventListener('click', () => navigate('next'));
+            
+            // Recalcula em caso de redimensionamento da janela
+            window.addEventListener('resize', () => updateTimeline());
+
+            // --- Inicialização ---
+            // Renderiza a timeline pela primeira vez
+            renderTimeline();
+        });
+
+    </script>
+
+</body>
+</html>

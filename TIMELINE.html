@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timeline do Projeto de Migração</title>
+    
+    <style>
+        /* Definição das variáveis de cor para fácil customização */
+        :root {
+            --color-bg: #f4f7f6;
+            --color-card-bg: #ffffff;
+            --color-text-primary: #333;
+            --color-text-secondary: #666;
+            
+            /* Cores de Status */
+            --color-completed: #28a745; /* Verde */
+            --color-inprogress: #ffc107; /* Amarelo/Laranja */
+            --color-upcoming: #e9ecef;   /* Cinza claro */
+            --color-upcoming-text: #adb5bd;
+
+            /* Cores Corporativas (Ex: Azul) */
+            --color-corporate-blue: #004a98;
+            --color-corporate-blue-light: #007bff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* * Ajuste para Google Sites: 
+         * Força o body a ter 100% de altura para centralizar
+         * o conteúdo dentro do iframe de incorporação.
+         */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--color-bg);
+            color: var(--color-text-primary);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .timeline-container {
+            width: 100%;
+            max-width: 1200px;
+            position: relative;
+            overflow: hidden; /* Essencial para o efeito de "andar" */
+            padding: 2rem 0;
+        }
+
+        /* * O Wrapper contém todos os itens e é o elemento que se move
+         * (O Efeito de "Andar")
+         */
+        .timeline-wrapper {
+            display: flex; /* Alinha os itens horizontalmente */
+            padding: 2rem 0;
+            /* Transição suave para o transform (Efeito de Andar) */
+            transition: transform 0.5s ease-in-out;
+            /* Classe para desativar a transição no carregamento inicial */
+        }
+        
+        .timeline-wrapper.no-transition {
+            transition: none;
+        }
+
+        .timeline-item {
+            /* Define o tamanho de cada item. Não encolhe, não cresce, base de 300px */
+            flex: 0 0 320px;
+            margin: 0 1rem;
+            padding: 1.5rem;
+            background-color: var(--color-card-bg);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border-left: 5px solid; /* A cor será definida pelo status */
+            cursor: pointer;
+
+            /* Transição para o Efeito de "Zoom" */
+            transition: transform 0.4s ease, opacity 0.4s ease;
+            
+            /* Estado Padrão (Inativo) */
+            transform: scale(0.95);
+            opacity: 0.7;
+        }
+
+        /* Efeito de Zoom (Ativo) */
+        .timeline-item.active {
+            transform: scale(1.05); /* Um pouco maior que os outros */
+            opacity: 1;
+            box-shadow: 0 8px 20px rgba(0, 74, 152, 0.15);
+        }
+
+        .timeline-item .date {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--color-text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .timeline-item h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.75rem;
+            color: var(--color-corporate-blue);
+        }
+
+        /* A descrição fica oculta por padrão */
+        .timeline-item .description {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: var(--color-text-secondary);
+            max-height: 0; /* Oculto */
+            opacity: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out, opacity 0.4s ease;
+        }
+
+        /* Mostra a descrição quando o item está ativo */
+        .timeline-item.active .description {
+            max-height: 200px; /* Revela o espaço */
+            opacity: 1;
+            margin-top: 1rem;
+        }
+
+        /* --- Estilos de Status --- */
+
+        .timeline-item.completed {
+            border-color: var(--color-completed);
+        }
+        /* Adiciona um ícone de "check" para itens concluídos */
+        .timeline-item.completed h3::after {
+            content: ' ✔';
+            color: var(--color-completed);
+            font-weight: bold;
+        }
+
+        .timeline-item.in-progress {
+            border-color: var(--color-inprogress);
+            /* Animação de "pulse" para o item em progresso */
+            animation: pulse 1.5s infinite;
+        }
+        .timeline-item.in-progress h3 {
+            color: var(--color-inprogress);
+        }
+
+        .timeline-item.upcoming {
+            border-color: var(--color-upcoming);
+            background-color: var(--color-upcoming);
+        }
+        .timeline-item.upcoming h3,
+        .timeline-item.upcoming .date,
+        .timeline-item.upcoming .description {
+            color: var(--color-upcoming-text);
+        }
+        /* Mesmo quando ativo, o "upcoming" parece "bloqueado" */
+        .timeline-item.upcoming.active {
+            opacity: 0.8;
+        }
+
+        /* --- Navegação --- */
+        .timeline-navigation {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .timeline-navigation button {
+            background-color: var(--color-corporate-blue);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        .timeline-navigation button:hover {
+            background-color: var(--color-corporate-blue-light);
+            transform: translateY(-2px);
+        }
+
+        .timeline-navigation button:disabled {
+            background-color: var(--color-upcoming);
+            color: var(--color-upcoming-text);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Animação de Pulse */
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(255, 193, 7, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
+            }
+        }
+
+        /* --- Responsividade --- */
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+            
+            .timeline-item {
+                /* Em telas menores, os itens ocupam mais largura */
+                flex: 0 0 80vw; 
+            }
+
+            /* Posiciona os botões nas laterais em mobile */
+            .timeline-navigation {
+                justify-content: space-between;
+                position: absolute;
+                top: 50%;
+                left: 0;
+                width: 100%;
+                padding: 0 1rem;
+                margin-top: 0;
+                transform: translateY(-50%);
+                z-index: 10;
+                pointer-events: none; /* Permite clicar nos itens "atrás" */
+            }
+
+            .timeline-navigation button {
+                pointer-events: all; /* Reativa os botões */
+                padding: 0.5rem 1rem;
+            }
+        }
+    </style>
+    </head>
+<body>
+
+    <div class="timeline-container">
+        <div class="timeline-wrapper" id="timeline-wrapper">
+            </div>
+
+        <div class="timeline-navigation">
+            <button id="prev-btn" title="Anterior">&lt; Anterior</button>
+            <button id="next-btn" title="Próximo">Próximo &gt;</button>
+        </div>
+    </div>
+
+    <script>
+        // Espera o DOM estar completamente carregado antes de executar o script
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- 1. Estrutura de Dados ---
+            // Os dados da timeline, conforme fornecido.
+            // Fácil de atualizar: basta adicionar/remover objetos ou mudar o 'status'.
+            const timelineData = [
+              {
+                id: 1,
+                date: "27/OUT/2025",
+                title: "Kick-off do Comitê",
+                description: "Alinhamento estratégico do Comitê de Migração. Definição do 'Plano Mestre'.",
+                status: "completed"
+              },
+              {
+                id: 2,
+                date: "05/NOV/2025",
+                title: "Planejamento Tático (Fase 1)",
+                description: "Definição do 'Kit Migração', mapeamento de riscos (Ishikawa) e aprovação da mensagem interna.",
+                status: "in-progress"
+              },
+              {
+                id: 3,
+                date: "DEZ/2025",
+                title: "Educação (Fase 2)",
+                description: "Início da comunicação externa (Rádio, Guias), treinamento de empatia das equipes e 'Anjos Digitais' nas agências.",
+                status: "upcoming"
+              },
+              {
+                id: 4,
+                date: "31/JAN/2026",
+                title: "O DIA D - Virada da Chave",
+                description: "Execução da migração técnica. Ativação da 'Sala de Guerra' (Time de Apoio Rápido) e suporte intensivo.",
+                status: "upcoming"
+              },
+              {
+                id: 5,
+                date: "FEV/2026",
+                title: "Suporte (Fase 3)",
+                description: "Duas primeiras semanas de suporte intensivo, coleta de feedback e estabilização do novo sistema.",
+                status: "upcoming"
+              }
+            ];
+
+            // --- 2. Variáveis Globais e Seletores do DOM ---
+            const wrapper = document.getElementById('timeline-wrapper');
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            
+            // Armazena o índice do item atualmente ativo/centralizado
+            let currentIndex = 0; 
+            // Array para armazenar os elementos DOM dos itens da timeline
+            let timelineItems = [];
+
+            // --- 3. Função de Renderização ---
+            /**
+             * Gera o HTML da timeline a partir do array 'timelineData'
+             * e o injeta no DOM.
+             */
+            function renderTimeline() {
+                // Limpa o wrapper antes de renderizar
+                wrapper.innerHTML = '';
+                
+                // Gera o HTML para cada item
+                timelineData.forEach((item, index) => {
+                    const itemElement = document.createElement('div');
+                    itemElement.classList.add('timeline-item', item.status);
+                    // Guarda o índice no próprio elemento para referência futura
+                    itemElement.dataset.index = index; 
+                    
+                    itemElement.innerHTML = `
+                        <span class="date">${item.date}</span>
+                        <h3>${item.title}</h3>
+                        <p class="description">${item.description}</p>
+                    `;
+                    wrapper.appendChild(itemElement);
+                });
+
+                // Atualiza a nossa referência aos elementos DOM
+                timelineItems = wrapper.querySelectorAll('.timeline-item');
+
+                // Encontra o item "em progresso" para ser o item inicial
+                const inProgressIndex = timelineData.findIndex(item => item.status === 'in-progress');
+                if (inProgressIndex !== -1) {
+                    currentIndex = inProgressIndex;
+                } else {
+                    currentIndex = 0; // Se nenhum estiver 'in-progress', começa do primeiro
+                }
+            }
+
+            // --- 4. Função de Atualização da View (O "Cérebro") ---
+            /**
+             * Atualiza a visualização da timeline:
+             * 1. Centraliza o item 'currentIndex' (Efeito de Andar)
+             * 2. Aplica a classe 'active' (Efeito de Zoom)
+             * 3. Atualiza o estado dos botões de navegação
+             */
+            function updateTimelineView() {
+                if (timelineItems.length === 0) return; // Não faz nada se não houver itens
+
+                const container = wrapper.parentElement;
+                const activeItem = timelineItems[currentIndex];
+
+                // --- Lógica do Efeito de "Andar" (transform: translateX) ---
+                // 1. Pega o centro do container principal
+                const containerCenter = container.offsetWidth / 2;
+                // 2. Pega o centro do item ativo
+                const itemCenter = activeItem.offsetWidth / 2;
+                // 3. Pega a posição "esquerda" do item ativo em relação ao wrapper
+                const itemOffsetLeft = activeItem.offsetLeft;
+
+                // 4. Calcula o valor exato para centralizar o item
+                // Queremos que a posição (offsetLeft + itemCenter) do item
+                // fique alinhada com o containerCenter.
+                const translation = itemOffsetLeft + itemCenter - containerCenter;
+
+                // 5. Aplica a transformação no wrapper
+                wrapper.style.transform = `translateX(-${translation}px)`;
+
+                // --- Lógica do Efeito de "Zoom" (classe .active) ---
+                // Remove 'active' de todos os itens
+                timelineItems.forEach(item => {
+                    item.classList.remove('active');
+                });
+                // Adiciona 'active' apenas ao item atual
+                activeItem.classList.add('active');
+
+                // --- Lógica dos Botões ---
+                // Desativa o botão "Anterior" se estivermos no primeiro item
+                prevBtn.disabled = currentIndex === 0;
+                // Desativa o botão "Próximo" se estivermos no último item
+                nextBtn.disabled = currentIndex === (timelineItems.length - 1);
+            }
+
+            // --- 5. Configuração dos Event Listeners ---
+            function setupEventListeners() {
+                // Botão "Próximo"
+                nextBtn.addEventListener('click', () => {
+                    if (currentIndex < timelineItems.length - 1) {
+                        currentIndex++;
+                        updateTimelineView();
+                    }
+                });
+
+                // Botão "Anterior"
+                prevBtn.addEventListener('click', () => {
+                    if (currentIndex > 0) {
+                        currentIndex--;
+                        updateTimelineView();
+                    }
+                });
+
+                // Opcional: Clicar num item também o ativa
+                timelineItems.forEach(item => {
+                    item.addEventListener('click', () => {
+                        // Pega o índice guardado no data-attribute
+                        currentIndex = parseInt(item.dataset.index);
+                        updateTimelineView();
+                    });
+                });
+
+                // Recalcula a visualização em caso de redimensionamento da janela
+                window.addEventListener('resize', updateTimelineView);
+            }
+
+            // --- 6. Função de Inicialização ---
+            function init() {
+                // 1. Cria os elementos HTML a partir dos dados
+                renderTimeline();
+                
+                // 2. Configura os cliques dos botões
+                setupEventListeners();
+
+                // 3. Define a posição inicial SEM animação
+                // Adiciona uma classe temporária para desativar a transição CSS
+                wrapper.classList.add('no-transition');
+                updateTimelineView(); // Define a posição inicial
+                
+                // Força o browser a "repintar" antes de remover a classe
+                // (truque para garantir que a transição não ocorra no carregamento)
+                void wrapper.offsetWidth; 
+                
+                // Remove a classe, reativando as transições para cliques futuros
+                wrapper.classList.remove('no-transition');
+            }
+
+            // --- Inicia a aplicação ---
+            init();
+
+        });
+    </script>
+    </body>
+</html>
