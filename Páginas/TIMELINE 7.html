@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timeline Interativa de Migração</title>
+    
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <style>
+        /* --- Configurações Globais e Cores --- */
+        :root {
+            --color-item-1: #f39c12;
+            --color-item-2: #2ecc71;
+            --color-item-3: #3498db;
+            --color-item-4: #9b59b6;
+            --color-item-5: #e74c3c;
+
+            /* Gradiente para a linha principal (baseado na imagem) */
+            --gradient-line: linear-gradient(
+                to right, 
+                var(--color-item-1), 
+                var(--color-item-2), 
+                var(--color-item-3), 
+                var(--color-item-4),
+                var(--color-item-5) /* Ajustado para 5 itens */
+            );
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 40px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        /* --- Estrutura do Carrossel --- */
+        .timeline-carousel-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .nav-btn {
+            background: #fff;
+            border: 2px solid #ddd;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            z-index: 50;
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            background: #f0f0f0;
+            border-color: #ccc;
+            transform: scale(1.1);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .nav-btn .material-icons {
+            font-size: 32px;
+            color: #555;
+        }
+
+        .timeline-carousel {
+            position: relative; /* Essencial para a linha absoluta */
+            width: 80%;
+            margin: 0 10px;
+            overflow: hidden;
+        }
+
+        /* --- NOVA LINHA HORIZONTAL DA TIMELINE --- */
+        .timeline-horizontal-line {
+            position: absolute;
+            top: 75px; /* Alinha no meio dos ícones */
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: var(--gradient-line);
+            z-index: 1; /* Fica atrás dos ícones */
+            border-radius: 5px;
+        }
+
+        .timeline-track {
+            display: flex;
+            position: relative;
+            padding: 40px 0;
+            transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
+            z-index: 2; /* Garante que os itens fiquem acima da linha */
+        }
+
+        /* --- Cada Item Individual (Slide) --- */
+        .timeline-item {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex-basis: 300px;
+            flex-shrink: 0;
+            margin: 0 20px;
+            opacity: 0.6;
+            filter: grayscale(30%);
+            transform: scale(0.85);
+            cursor: pointer;
+            transition: all 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .timeline-item::before {
+            content: attr(data-year);
+            position: absolute;
+            top: -35px;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: var(--item-color);
+        }
+
+        .timeline-icon-container {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 4px solid var(--item-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10; /* Fica na frente da linha horizontal */
+        }
+
+        .timeline-icon-container .material-icons {
+            font-size: 28px;
+            color: var(--item-color);
+        }
+
+        .timeline-icon-container::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            height: 35px;
+            width: 3px;
+            background-color: var(--item-color);
+        }
+
+        .timeline-content {
+            margin-top: 35px;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            width: 100%;
+            transition: padding 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .timeline-content h3 {
+            background-color: var(--item-color);
+            color: #ffffff;
+            padding: 10px;
+            margin: -20px -20px 15px -20px;
+            border-radius: 8px 8px 0 0;
+            font-size: 1.1em;
+            text-align: center;
+        }
+
+        .timeline-content p {
+            font-size: 0.9em;
+            color: #555;
+            line-height: 1.5;
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            margin: 0;
+            transition: max-height 0.5s cubic-bezier(0.25, 0.8, 0.25, 1),
+                        opacity 0.3s ease-out,
+                        margin 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .timeline-item.active .timeline-content p {
+            max-height: 150px;
+            opacity: 1;
+            margin: 15px 0 0 0;
+            transition: max-height 0.5s cubic-bezier(0.25, 0.8, 0.25, 1),
+                        opacity 0.4s ease-in 0.1s,
+                        margin 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        /* --- Cores (Igual a antes) --- */
+        .timeline-item:nth-child(1) { --item-color: var(--color-item-1); }
+        .timeline-item:nth-child(2) { --item-color: var(--color-item-2); }
+        .timeline-item:nth-child(3) { --item-color: var(--color-item-3); }
+        .timeline-item:nth-child(4) { --item-color: var(--color-item-4); }
+        .timeline-item:nth-child(5) { --item-color: var(--color-item-5); }
+        
+        /* --- Estado Ativo (Destaque) --- */
+        .timeline-item.active {
+            opacity: 1;
+            filter: grayscale(0%);
+            transform: scale(1);
+        }
+        
+        /* --- Responsividade (Sem alterações substanciais) --- */
+        @media (max-width: 768px) {
+            body {
+                padding: 20px 0;
+            }
+            
+            .timeline-item {
+                flex-basis: 250px;
+                margin: 0 10px;
+            }
+            
+            .timeline-carousel {
+                width: 70%;
+            }
+
+            .nav-btn {
+                width: 40px;
+                height: 40px;
+            }
+            .nav-btn .material-icons {
+                font-size: 24px;
+            }
+
+            /* Esconde a linha horizontal em telas pequenas se ela não fizer sentido */
+            .timeline-horizontal-line {
+                display: none;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>Timeline Interativa da Migração</h1>
+
+    <div class="timeline-carousel-wrapper">
+        
+        <button id="prev-btn" class="nav-btn">
+            <span class="material-icons">chevron_left</span>
+        </button>
+
+        <div class="timeline-carousel">
+            <div class="timeline-horizontal-line"></div>
+            
+            <div class="timeline-track">
+                </div>
+        </div>
+
+        <button id="next-btn" class="nav-btn">
+            <span class="material-icons">chevron_right</span>
+        </button>
+
+    </div>
+
+
+    <script>
+        // =====================================================================
+        // 1. ESTRUTURA DE DADOS (IDÊNTICA À VERSÃO ANTERIOR)
+        // =====================================================================
+        const timelineData = [
+            {
+                year: '2019',
+                title: 'Fase 1: Preparação',
+                description: 'Análise de requisitos, definição de escopo e montagem da equipe.',
+                icon: 'build'
+            },
+            {
+                year: '2020',
+                title: 'Fase 2: Migração Financeira',
+                description: 'Transferência e validação dos dados contábeis e faturamento.',
+                icon: 'account_balance_wallet'
+            },
+            {
+                year: '2021',
+                title: 'Fase 3: Testes e Análise',
+                description: 'Execução de testes de ponta-a-ponta, auditoria e otimização.',
+                icon: 'search'
+            },
+            {
+                year: '2022',
+                title: 'Fase 4: Go-Live',
+                description: 'Lançamento oficial do novo sistema e início do monitoramento.',
+                icon: 'visibility'
+            },
+            {
+                year: '2023',
+                title: 'Fase 5: Pós-Implementação',
+                description: 'Suporte contínuo, otimizações e treinamento de novos usuários.',
+                icon: 'school'
+            }
+        ];
+
+
+        // =====================================================================
+        // 2. LÓGICA DO CARROSSEL (IDÊNTICA À VERSÃO ANTERIOR)
+        // =====================================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            let currentIndex = 0;
+            const track = document.querySelector('.timeline-track');
+            const carouselViewport = document.querySelector('.timeline-carousel');
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            let items = [];
+
+            function generateTimelineItems() {
+                timelineData.forEach((item, index) => {
+                    const timelineItem = document.createElement('div');
+                    timelineItem.className = 'timeline-item';
+                    timelineItem.setAttribute('data-year', item.year);
+                    timelineItem.setAttribute('data-index', index);
+
+                    timelineItem.innerHTML = `
+                        <div class="timeline-icon-container">
+                            <span class="material-icons">${item.icon}</span>
+                        </div>
+                        <div class="timeline-content">
+                            <h3>${item.title}</h3>
+                            <p>${item.description}</p>
+                        </div>
+                    `;
+                    track.appendChild(timelineItem);
+                });
+                
+                items = track.querySelectorAll('.timeline-item');
+            }
+
+            function updateTimelineView() {
+                const activeItem = items[currentIndex];
+                const viewportWidth = carouselViewport.offsetWidth;
+                const itemCenter = activeItem.offsetLeft + (activeItem.offsetWidth / 2);
+                const viewportCenter = viewportWidth / 2;
+                const newTransform = viewportCenter - itemCenter;
+
+                track.style.transform = `translateX(${newTransform}px)`;
+
+                items.forEach((item, index) => {
+                    item.classList.toggle('active', index === currentIndex);
+                });
+
+                prevBtn.disabled = currentIndex === 0;
+                nextBtn.disabled = currentIndex === items.length - 1;
+            }
+
+            function navigateTo(index) {
+                if (index < 0 || index >= items.length) return;
+                currentIndex = index;
+                updateTimelineView();
+            }
+
+            generateTimelineItems();
+            updateTimelineView();
+
+            nextBtn.addEventListener('click', () => {
+                navigateTo(currentIndex + 1);
+            });
+
+            prevBtn.addEventListener('click', () => {
+                navigateTo(currentIndex - 1);
+            });
+
+            track.addEventListener('click', (e) => {
+                const clickedItem = e.target.closest('.timeline-item');
+                if (clickedItem && !clickedItem.classList.contains('active')) {
+                    const index = parseInt(clickedItem.dataset.index, 10);
+                    navigateTo(index);
+                }
+            });
+
+            window.addEventListener('resize', updateTimelineView);
+        });
+
+    </script>
+
+</body>
+</html>

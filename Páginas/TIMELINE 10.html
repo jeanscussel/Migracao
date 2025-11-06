@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timeline Interativa de Migração</title>
+    
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <style>
+        /* --- Estilos Globais --- */
+        :root {
+            --cor-primaria: #007bff; /* Azul, inspirado nos ícones */
+            --cor-texto: #333;
+            --cor-fundo: #f4f7f6;
+            --cor-card: #ffffff;
+            --sombra-card: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --sombra-card-ativa: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--cor-fundo);
+            color: var(--cor-texto);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 2rem 0;
+            box-sizing: border-box;
+        }
+
+        /* --- Estrutura Principal do Carrossel --- */
+        .timeline-carousel-container {
+            width: 90%;
+            max-width: 1000px;
+            margin: auto;
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--cor-texto);
+            margin-bottom: 2rem;
+        }
+
+        .timeline-carousel {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* --- Viewport do Carrossel --- */
+        .timeline-wrapper {
+            overflow: hidden;
+            width: 100%;
+            /* Deixa espaço para os itens dos lados "crescerem" para o foco */
+            padding: 2rem 0; 
+        }
+
+        /* --- Contêiner dos Itens (A "fita" que se move) --- */
+        .timeline-container {
+            display: flex; /* Alinha os itens lado a lado */
+            transition: transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+            /* O padding é calculado no JS, mas um inicial ajuda */
+            padding: 0 50px; 
+        }
+
+        /* --- Botões de Navegação --- */
+        .nav-btn {
+            background-color: var(--cor-card);
+            border: 1px solid #ddd;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: var(--sombra-card);
+            z-index: 10;
+            color: var(--cor-primaria);
+            
+            /* Posicionamento (ajuste fino) */
+            margin: 0 1rem;
+        }
+
+        .nav-btn:hover {
+            background-color: var(--cor-primaria);
+            color: var(--cor-card);
+            transform: scale(1.1);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            background-color: #eee;
+            transform: scale(1);
+        }
+        
+        /* Ajuste para telas menores: botões ficam abaixo */
+        @media (max-width: 768px) {
+            .timeline-carousel-container {
+                width: 100%;
+            }
+            .timeline-carousel {
+                flex-direction: column;
+            }
+            .nav-btn {
+                /* Reordenar com CSS flex */
+                order: 2; 
+                margin: 1rem 0.5rem 0 0.5rem;
+            }
+            .timeline-wrapper {
+                order: 1;
+                width: 100vw; /* Ocupa a largura toda */
+            }
+            /* Cria uma "barra" de navegação */
+            .nav-container { 
+                display: flex;
+                justify-content: center;
+                width: 100%;
+                order: 2;
+            }
+        }
+
+        /* --- Estilo de Cada Item (Card) --- */
+        .timeline-item {
+            /* Garante que o item não encolha ou estique */
+            flex: 0 0 300px; 
+            width: 300px;
+            margin: 0 15px; /* Espaçamento entre os cards */
+            padding: 1.5rem;
+            background: var(--cor-card);
+            border-radius: 12px;
+            box-shadow: var(--sombra-card);
+            text-align: left;
+            
+            /* --- REQUISITO: Efeito de Foco --- */
+            transition: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+            
+            /* Estado Padrão (Não-ativo) */
+            transform: scale(0.85);
+            opacity: 0.6;
+        }
+
+        /* --- REQUISITO: Efeito de Foco (Ativo) --- */
+        .timeline-item.active {
+            transform: scale(1);
+            opacity: 1;
+            box-shadow: var(--sombra-card-ativa);
+        }
+
+        /* Conteúdo do Card (Inspirado na imagem) */
+        .item-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .item-icon {
+            font-size: 2.5rem; /* Tamanho do ícone */
+            color: var(--cor-primaria);
+            margin-right: 1rem;
+        }
+
+        .item-header h3 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--cor-primaria);
+        }
+
+        .timeline-item p {
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="timeline-carousel-container">
+        <h2>Cronograma de Migração do Sistema</h2>
+        
+        <div class="timeline-carousel">
+            
+            <div class="nav-container">
+                <button id="prev-btn" class="nav-btn">
+                    <span class="material-icons">arrow_back_ios_new</span>
+                </button>
+            </div>
+
+            <div class="timeline-wrapper">
+                <div class="timeline-container">
+                    </div>
+            </div>
+
+            <div class="nav-container">
+                <button id="next-btn" class="nav-btn">
+                    <span class="material-icons">arrow_forward_ios</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        /**
+         * ===================================================================
+         * DADOS DA TIMELINE (FÁCIL ATUALIZAÇÃO)
+         * Altere, adicione ou remova itens deste array para atualizar o carrossel.
+         * * 'icon': Nome do ícone do Google Material Icons
+         * (https://fonts.google.com/icons)
+         * ===================================================================
+         */
+        const timelineData = [
+            {
+                step: "FASE 1",
+                title: "Planejamento e Análise",
+                description: "Definição de escopo, levantamento de requisitos com as equipes e análise de infraestrutura atual.",
+                icon: "rule_folder" // (Inspiração: Pessoas/Planejamento)
+            },
+            {
+                step: "FASE 2",
+                title: "Configuração do Ambiente",
+                description: "Preparação dos servidores de destino (produção, homologação) e instalação do novo sistema.",
+                icon: "settings_suggest" // (Inspiração: Organograma)
+            },
+            {
+                step: "FASE 3",
+                title: "Migração de Dados (Piloto)",
+                description: "Migração de um subconjunto de dados para testes, validação de scripts e performance.",
+                icon: "analytics" // (Inspiração: Gráfico)
+            },
+            {
+                step: "FASE 4",
+                title: "Treinamento e Validação",
+                description: "Capacitação dos usuários-chave (Key Users) e testes de aceitação (UAT) no ambiente de homologação.",
+                icon: "groups" // (Inspiração: Globo/Equipes)
+            },
+            {
+                step: "FASE 5",
+                title: "Go-Live (Virada)",
+                description: "Migração final dos dados, 'congelamento' do sistema antigo e liberação do novo sistema para produção.",
+                icon: "schedule" // (Inspiração: Relógio)
+            },
+            {
+                step: "FASE 6",
+                title: "Pós-Go-Live e Suporte",
+                description: "Operação assistida, suporte intensivo (hypercare) nas primeiras semanas e coleta de feedback.",
+                icon: "payments" // (Inspiração: Dinheiro/Valor)
+            }
+        ];
+
+
+        /**
+         * ===================================================================
+         * LÓGICA DO CARROSSEL (Não precisa editar abaixo)
+         * ===================================================================
+         */
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.querySelector('.timeline-container');
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+
+            let currentIndex = 0; // Começa no primeiro item
+            let items = []; // Para armazenar os elementos DOM
+
+            /**
+             * 1. Renderiza os itens da timeline no HTML
+             */
+            function renderTimeline() {
+                container.innerHTML = ''; // Limpa o contêiner
+                
+                timelineData.forEach((item) => {
+                    const itemEl = document.createElement('div');
+                    itemEl.classList.add('timeline-item');
+                    
+                    itemEl.innerHTML = `
+                        <div class="item-header">
+                            <span class="material-icons item-icon">${item.icon}</span>
+                            <h3>${item.step}: ${item.title}</h3>
+                        </div>
+                        <p>${item.description}</p>
+                    `;
+                    container.appendChild(itemEl);
+                });
+
+                items = document.querySelectorAll('.timeline-item');
+                // Ajusta o padding do contêiner para centralizar o primeiro item
+                updateCarousel(); 
+            }
+
+            /**
+             * 2. Atualiza a posição do carrossel e o estado de foco
+             */
+            function updateCarousel() {
+                if (items.length === 0) return;
+
+                const wrapper = document.querySelector('.timeline-wrapper');
+                const wrapperWidth = wrapper.offsetWidth;
+                const itemWidth = items[0].offsetWidth; // Largura de um item
+                const margin = parseInt(window.getComputedStyle(items[0]).marginRight) * 2; // Margem total (esquerda/direita)
+
+                // Calcula o offset para centralizar o item ativo
+                // Posição central do wrapper - Posição central do item
+                const offset = (wrapperWidth / 2) - (itemWidth / 2) - (currentIndex * (itemWidth + margin));
+
+                // Aplica a transformação CSS para mover o contêiner
+                container.style.transform = `translateX(${offset}px)`;
+
+                // Atualiza as classes 'active'
+                items.forEach((item, index) => {
+                    if (index === currentIndex) {
+                        item.classList.add('active');
+                    } else {
+                        item.classList.remove('active');
+                    }
+                });
+
+                // Atualiza o estado dos botões
+                prevBtn.disabled = currentIndex === 0;
+                nextBtn.disabled = currentIndex === items.length - 1;
+            }
+
+            // --- Event Listeners ---
+
+            // Botão "Voltar"
+            prevBtn.addEventListener('click', () => {
+                if (currentIndex > 0) {
+                    currentIndex--;
+                    updateCarousel();
+                }
+            });
+
+            // Botão "Avançar"
+            nextBtn.addEventListener('click', () => {
+                if (currentIndex < items.length - 1) {
+                    currentIndex++;
+                    updateCarousel();
+                }
+            });
+
+            // Recalcula em caso de redimensionamento da janela
+            window.addEventListener('resize', updateCarousel);
+
+            // Inicia tudo
+            renderTimeline();
+        });
+
+    </script>
+</body>
+</html>

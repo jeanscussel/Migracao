@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timeline Interativa de Migração</title>
+    
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+
+    <style>
+        /* ================================================== */
+        /* 1. ESTILOS GERAIS E VARIÁVEIS                    */
+        /* ================================================== */
+        :root {
+            --color-primary: #007bff; /* Azul primário */
+            --color-light-gray: #f0f2f5;
+            --color-gray: #ccc;
+            --color-dark-gray: #555;
+            --color-text: #333;
+            --card-width-desktop: 300px;
+            --card-width-mobile: 80vw;
+            --transition-speed-fast: 0.3s;
+            --transition-speed-medium: 0.5s;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--color-light-gray);
+            color: var(--color-text);
+            display: grid;
+            place-items: center;
+            min-height: 100vh;
+        }
+
+        /* ================================================== */
+        /* 2. ESTRUTURA DO CARROSSEL (LAYOUT PRINCIPAL)     */
+        /* ================================================== */
+
+        .timeline-carousel-container {
+            position: relative;
+            width: 100%;
+            max-width: 1200px;
+            margin: 40px auto;
+            /* Overflow hidden é crucial para o carrossel */
+            overflow: hidden;
+            /* Espaçamento para os itens de cima e baixo */
+            padding: 150px 0;
+        }
+
+        /* A Linha Horizontal Central */
+        .timeline-carousel-container::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background-color: var(--color-gray);
+            transform: translateY(-50%);
+            z-index: 1;
+        }
+
+        /* A "pista" que segura os itens e se move */
+        .timeline-track {
+            display: flex;
+            /* Esta transição anima o movimento do carrossel */
+            transition: transform var(--transition-speed-medium) ease-in-out;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* ================================================== */
+        /* 3. ESTILOS DOS ITENS DA TIMELINE                 */
+        /* ================================================== */
+
+        .timeline-item {
+            /* flex: 0 0 [largura];
+              Isto força cada item a ter exatamente a largura definida.
+            */
+            flex: 0 0 var(--card-width-desktop);
+            position: relative;
+            padding: 10px;
+            height: 350px; /* Altura para acomodar cards em cima e em baixo */
+        }
+
+        /* O "Nó" (bolinha) na linha do tempo */
+        .timeline-dot {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            background-color: var(--color-primary);
+            border: 4px solid var(--color-light-gray);
+            border-radius: 50%;
+            z-index: 3; /* Acima da linha e do card */
+        }
+
+        /* O Card que contém a informação */
+        .timeline-card {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            position: absolute;
+            width: calc(100% - 20px); /* (100% - padding do item) */
+            left: 10px;
+            padding: 15px;
+            
+            /* Efeito de Foco (estado padrão: não-focado) */
+            opacity: 0.6;
+            transform: scale(0.9);
+            transform-origin: center;
+            transition: transform var(--transition-speed-fast) ease,
+                        opacity var(--transition-speed-fast) ease,
+                        box-shadow var(--transition-speed-fast) ease;
+        }
+
+        /* Layout Alternado: Itens de Cima */
+        .item-top .timeline-card {
+            bottom: calc(50% + 30px); /* 30px acima do centro */
+            transform-origin: bottom center;
+        }
+
+        /* Layout Alternado: Itens de Baixo */
+        .item-bottom .timeline-card {
+            top: calc(50% + 30px); /* 30px abaixo do centro */
+            transform-origin: top center;
+        }
+
+        /* ================================================== */
+        /* 4. EFEITO DE FOCO CENTRAL (.active)                */
+        /* ================================================== */
+        
+        /* O item ativo (focado) fica 100% opaco e maior */
+        .timeline-item.active .timeline-card {
+            opacity: 1;
+            transform: scale(1.1);
+            box-shadow: 0 8px 20px rgba(0, 123, 255, 0.25);
+        }
+
+        /* ================================================== */
+        /* 5. CONTEÚDO DO CARD E ACORDEÃO                   */
+        /* ================================================== */
+
+        .timeline-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+        }
+
+        .timeline-title-group {
+            display: flex;
+            align-items: center;
+        }
+
+        .timeline-icon {
+            font-size: 28px;
+            color: var(--color-primary);
+            margin-right: 10px;
+        }
+
+        .timeline-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+        
+        .timeline-card-header .material-icons-outlined {
+            font-size: 24px;
+            transition: transform var(--transition-speed-fast) ease;
+        }
+
+        /* Gira o ícone de seta quando o acordeão está ativo */
+        .timeline-card.active-accordion .material-icons-outlined {
+            transform: rotate(180deg);
+        }
+
+        /* Conteúdo do Acordeão (escondido por padrão) */
+        .timeline-content {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: var(--color-dark-gray);
+            
+            /* A mágica do acordeão */
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out;
+        }
+
+
+        /* ================================================== */
+        /* 6. NAVEGAÇÃO (BOTÕES)                            */
+        /* ================================================== */
+
+        .timeline-nav {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            transform: translateY(-50%);
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 10;
+            /* Impede que os botões capturem cliques no carrossel */
+            pointer-events: none;
+        }
+
+        .timeline-nav button {
+            pointer-events: all; /* Re-ativa cliques nos botões */
+            background-color: #fff;
+            border: 2px solid var(--color-primary);
+            color: var(--color-primary);
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.2s, color 0.2s, transform 0.2s;
+        }
+
+        .timeline-nav button:hover {
+            background-color: var(--color-primary);
+            color: #fff;
+            transform: scale(1.1);
+        }
+
+        .timeline-nav button:disabled {
+            background-color: var(--color-gray);
+            border-color: var(--color-gray);
+            color: #999;
+            cursor: not-allowed;
+            transform: scale(1);
+        }
+
+        /* ================================================== */
+        /* 7. RESPONSIVIDADE (MOBILE)                       */
+        /* ================================================== */
+
+        @media (max-width: 768px) {
+            .timeline-carousel-container {
+                /* Aumenta o padding de cima para a linha e os cards */
+                padding: 150px 0 50px 0; 
+            }
+
+            /* Move a linha horizontal para cima */
+            .timeline-carousel-container::before {
+                top: 100px;
+            }
+
+            .timeline-item {
+                /* Itens ficam mais largos no mobile */
+                flex: 0 0 var(--card-width-mobile);
+                height: auto; /* Altura automática */
+                padding-bottom: 30px;
+            }
+
+            /* Move o "nó" para a linha (que agora está em top: 100px) */
+            .timeline-dot {
+                top: 100px;
+            }
+
+            /* Remove o layout alternado.
+              Força TODOS os cards para baixo da linha.
+            */
+            .item-top .timeline-card,
+            .item-bottom .timeline-card {
+                position: relative;
+                top: 130px; /* (100px da linha + 30px de espaço) */
+                bottom: auto;
+                transform-origin: center; /* Reseta a origem da transformação */
+            }
+            
+            /* A lógica de foco central (scale) continua a mesma! */
+            
+            .timeline-nav {
+                top: 100px; /* Alinha os botões com a nova linha */
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="timeline-carousel-container" id="timeline-container">
+        
+        <div class="timeline-track" id="timeline-track">
+            </div>
+
+        <div class="timeline-nav">
+            <button id="prev-btn" aria-label="Item anterior">
+                <span class="material-icons-outlined">chevron_left</span>
+            </button>
+            <button id="next-btn" aria-label="Próximo item">
+                <span class="material-icons-outlined">chevron_right</span>
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        /* ================================================== */
+        /* JAVASCRIPT: O "CÉREBRO"                          */
+        /* ================================================== */
+
+        // Espera o DOM carregar antes de executar o script
+        document.addEventListener('DOMContentLoaded', () => {
+
+            /* ---------------------------------------------- */
+            /* 1. DADOS DA TIMELINE (FÁCIL ATUALIZAÇÃO)       */
+            /* ---------------------------------------------- */
+            // Adicione ou remova itens facilmente aqui.
+            // Ícones: Use os nomes do Google Material Icons (https://fonts.google.com/icons)
+            
+            const timelineData = [
+                {
+                    icon: 'person',
+                    title: 'Fase 1: Equipa',
+                    description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent aliquam, justo con vallis luctus rutrum.'
+                },
+                {
+                    icon: 'groups',
+                    title: 'Fase 2: Estrutura',
+                    description: 'Fusce porta, mi ut eleifend blandit, risus sem dictum nisi, eu po rta ante sem ut mauris. Suspendisse potenti.'
+                },
+                {
+                    icon: 'analytics',
+                    title: 'Fase 3: Análise',
+                    description: 'Praesent aliquam, justo con vallis luctus rutrum, erat nulla fermentum diam, at nonum quam ante quam.'
+                },
+                {
+                    icon: 'public',
+                    title: 'Fase 4: Global',
+                    description: 'Donec et nibh maximus, congue est eu, mattis nunc. Praesent ut quam quis quam venenatis fringilla.'
+                },
+                {
+                    icon: 'schedule',
+                    title: 'Fase 5: Prazos',
+                    description: 'Nulla metus metus, ullamcorper vel, tincidunt sed, euismod in, nibh. Quisque volutpat condimentum velit.'
+                },
+                {
+                    icon: 'payments',
+                    title: 'Fase 6: Orçamento',
+                    description: 'Nam nec ante. Sed lacinia, urna non tincidunt mattis, tortor neque adipiscing diam, a cursus ipsum ante quis.'
+                },
+                {
+                    icon: 'flag',
+                    title: 'Fase 7: Lançamento',
+                    description: 'EtiaM porta sem malesuada magna mollis euismod. Aenean eu leo quam. Pellentesque ornare sem lacinia quam.'
+                }
+            ];
+
+            /* ---------------------------------------------- */
+            /* 2. SELETORES DO DOM E ESTADO INICIAL           */
+            /* ---------------------------------------------- */
+            const track = document.getElementById('timeline-track');
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+
+            let currentIndex = 0; // Estado que controla o item ativo
+
+            /* ---------------------------------------------- */
+            /* 3. FUNÇÃO: RENDERIZAR TIMELINE (DINÂMICO)      */
+            /* ---------------------------------------------- */
+            function renderTimeline() {
+                // Limpa o track antes de adicionar novos itens
+                track.innerHTML = '';
+
+                // Itera sobre o array de dados
+                timelineData.forEach((item, index) => {
+                    // Define se o item fica em cima ou em baixo
+                    const positionClass = (index % 2 === 0) ? 'item-top' : 'item-bottom';
+                    
+                    // Cria o HTML para cada item
+                    const itemHTML = `
+                        <div class="timeline-item ${positionClass}">
+                            <div class="timeline-dot"></div>
+                            <div class="timeline-card">
+                                <div class="timeline-card-header">
+                                    <div class="timeline-title-group">
+                                        <span class="material-icons-outlined timeline-icon">${item.icon}</span>
+                                        <h3 class="timeline-title">${item.title}</h3>
+                                    </div>
+                                    <span class="material-icons-outlined">expand_more</span>
+                                </div>
+                                <div class="timeline-content">
+                                    <p>${item.description}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    // Adiciona o HTML ao track
+                    track.innerHTML += itemHTML;
+                });
+
+                // Após renderizar, configura os ouvintes de acordeão
+                setupAccordionListeners();
+            }
+
+            /* ---------------------------------------------- */
+            /* 4. FUNÇÃO: ATUALIZAR CARROSSEL (CORE)          */
+            /* ---------------------------------------------- */
+            function updateCarousel() {
+                // Seleciona todos os itens que foram renderizados
+                const items = track.querySelectorAll('.timeline-item');
+                if (items.length === 0) return;
+
+                // Calcula a largura de um item (incluindo padding)
+                const itemWidth = items[0].offsetWidth;
+
+                // A MÁGICA DO FOCO CENTRAL:
+                // 1. Move a "pista" (track) para a esquerda (negativo)
+                //    na distância de (índice_atual * largura_do_item).
+                // 2. Adiciona 50% da largura da tela (vw) para trazer o
+                //    ponto de âncora para o centro da tela.
+                // 3. Subtrai metade da largura do item para centralizar
+                //    o *meio* do item, e não a sua borda esquerda.
+                const offset = -(currentIndex * itemWidth) + (window.innerWidth / 2) - (itemWidth / 2);
+
+                track.style.transform = `translateX(${offset}px)`;
+
+                // Atualiza as classes '.active' para o efeito de foco
+                items.forEach((item, index) => {
+                    if (index === currentIndex) {
+                        item.classList.add('active');
+                    } else {
+                        item.classList.remove('active');
+                    }
+                });
+
+                // Atualiza o estado (desabilitado/habilitado) dos botões
+                prevBtn.disabled = (currentIndex === 0);
+                nextBtn.disabled = (currentIndex === items.length - 1);
+            }
+
+            /* ---------------------------------------------- */
+            /* 5. FUNÇÃO: CONFIGURAR ACORDEÃO                 */
+            /* ---------------------------------------------- */
+            function setupAccordionListeners() {
+                // Usamos delegação de eventos no 'track'
+                track.addEventListener('click', (event) => {
+                    // Encontra o header do card que foi clicado
+                    const header = event.target.closest('.timeline-card-header');
+                    if (!header) return; // Sai se o clique não foi no header
+                    
+                    // Encontra o card pai e o conteúdo
+                    const card = header.closest('.timeline-card');
+                    const content = card.querySelector('.timeline-content');
+                    
+                    // Alterna a classe de acordeão ativo
+                    card.classList.toggle('active-accordion');
+
+                    // Anima a altura (max-height)
+                    if (card.classList.contains('active-accordion')) {
+                        // Define a altura máxima para o tamanho real do conteúdo
+                        content.style.maxHeight = content.scrollHeight + 'px';
+                    } else {
+                        // Recolhe o conteúdo
+                        content.style.maxHeight = '0px';
+                    }
+                });
+            }
+
+            /* ---------------------------------------------- */
+            /* 6. FUNÇÃO: INICIALIZAÇÃO                       */
+            /* ---------------------------------------------- */
+            function init() {
+                renderTimeline(); // 1. Cria o HTML a partir dos dados
+                updateCarousel(); // 2. Define o estado inicial (item 0 focado)
+
+                // 3. Adiciona ouvintes aos botões de navegação
+                prevBtn.addEventListener('click', () => {
+                    if (currentIndex > 0) {
+                        currentIndex--;
+                        updateCarousel();
+                    }
+                });
+
+                nextBtn.addEventListener('click', () => {
+                    if (currentIndex < timelineData.length - 1) {
+                        currentIndex++;
+                        updateCarousel();
+                    }
+                });
+
+                // 4. Recalcula o carrossel se a janela for redimensionada
+                // (Importante para o cálculo do offset central)
+                window.addEventListener('resize', updateCarousel);
+            }
+
+            // Inicia tudo!
+            init();
+        });
+    </script>
+</body>
+</html>
