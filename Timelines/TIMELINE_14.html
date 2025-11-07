@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cronograma Interativo de Migração</title>
+    
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <style>
+        /* --- ESTILOS GERAIS --- */
+        :root {
+            --color-yellow: #f39c12;
+            --color-pink: #e91e63;
+            --color-red: #e74c3c;
+            --color-green: #2ecc71;
+            
+            --color-bg: #ecf0f1;
+            --color-text: #34495e;
+            --color-text-light: #fdfdfd;
+            --color-border: #bdc3c7;
+            /* Nova cor cinza suave para inativos */
+            --color-inactive: #aaa; 
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            margin: 0;
+            padding: 40px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            color: var(--color-text);
+            text-align: center;
+            font-weight: 600;
+        }
+
+        /* --- 1. NOVA LINHA DO TEMPO (MARCADORES) --- */
+        .timeline-line-container {
+            width: 100%;
+            max-width: 1200px;
+            /* O padding deve ser igual ao do .timeline-container */
+            padding: 0 40px; 
+            margin: 0 auto 30px auto; /* Espaço entre a linha e os cartões */
+            box-sizing: border-box;
+            
+            /* Controlo para alinhamento */
+            height: 30px;
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        
+        /* A linha cinzenta de fundo */
+        .timeline-line-bg {
+            position: absolute;
+            /* Alinha com o padding do container */
+            left: 40px; 
+            right: 40px;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 4px;
+            background-color: var(--color-border);
+            z-index: 1;
+        }
+
+        /* Lista <ul> que segura os marcadores */
+        .timeline-line-markers {
+            display: flex;
+            justify-content: space-between; /* Espalha os pontos igualmente */
+            width: 100%;
+            position: relative;
+            z-index: 2; /* Fica acima da linha de fundo */
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        /* O <li> de cada marcador */
+        .timeline-marker {
+            display: block;
+        }
+        
+        /* O ponto (<span>) dentro do <li> */
+        .timeline-marker span {
+            display: block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            /* Cor padrão do ponto é cinza */
+            background-color: var(--color-inactive); 
+            border: 3px solid var(--color-bg); /* Cria o efeito de "borda" */
+            transition: all 0.5s ease;
+        }
+
+        /* Estado ATIVO do marcador: usa a cor definida (Requisito 1) */
+        .timeline-marker.active-marker span {
+            /* Usa a cor do cartão definida no JS */
+            background-color: var(--card-color, var(--color-yellow));
+            transform: scale(1.3);
+        }
+
+        /* --- ESTRUTURA DO CARROSSEL --- */
+        .timeline-container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            padding: 0 40px; 
+            box-sizing: border-box;
+        }
+
+        .timeline-viewport {
+            width: 100%;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .timeline-track {
+            display: flex;
+            padding: 40px 0; 
+            margin: 0;
+            list-style: none;
+            transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+
+        /* --- 2. CARTÃO INDIVIDUAL (Layout Atualizado) --- */
+        .timeline-item {
+            flex-basis: 300px;
+            flex-shrink: 0;
+            margin: 0 20px;
+            background: #ffffff;
+            border-radius: 10px;
+            /* Opacidade e escala inicial (cinza e apagado - Requisito 1) */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            opacity: 0.7; /* Ligeiramente apagado */
+            transform: scale(0.9); /* Ligeiramente menor */
+            transition: all 0.5s ease;
+            display: flex;
+            flex-direction: column;
+            
+            /* Cor de borda inicial (cinza) */
+            border: 2px solid var(--color-border);
+        }
+
+        /* Estado ATIVO do Cartão: Aplica a cor (Requisito 1) */
+        .timeline-item.active-card {
+            opacity: 1;
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            /* Borda colorida */
+            border-color: var(--card-color, var(--color-yellow)); 
+        }
+        
+        /* Cabeçalho (SÓ A DATA/ANO) - Cor Padrão (Cinza) */
+        .timeline-item-header {
+            /* Cor de fundo padrão cinza/inativa */
+            background-color: var(--color-inactive); 
+            color: var(--color-text-light);
+            padding: 15px 20px;
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.5s ease;
+        }
+        
+        /* Cabeçalho ATIVO: Retorna à cor do cartão (Requisito 1) */
+        .timeline-item.active-card .timeline-item-header {
+            background-color: var(--card-color, var(--color-yellow));
+        }
+
+        .timeline-item-header h2 { /* Ano */
+            margin: 0;
+            font-size: 1.4rem;
+            text-align: center;
+        }
+        
+        /* Corpo do Cartão (TÍTULO, ÍCONE, DESCRIÇÃO) */
+        .timeline-item-body {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            flex-grow: 1;
+        }
+
+        /* Novo estilo para o Título dentro do corpo */
+        .timeline-item-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--color-text);
+            margin-bottom: 15px;
+        }
+
+        /* Ícone - Cor Padrão (Cinza Suave) */
+        .timeline-icon {
+            color: var(--color-border); 
+            font-size: 4rem;
+            margin-bottom: 15px;
+            transition: color 0.5s ease;
+        }
+        
+        /* Ícone ATIVO: Retorna à cor do cartão (Requisito 1) */
+        .timeline-item.active-card .timeline-icon {
+            color: var(--card-color, var(--color-yellow));
+        }
+        
+        .timeline-item-body p {
+            margin: 0;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        /* --- BOTÕES DE NAVEGAÇÃO --- */
+        .timeline-nav-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: #ffffff;
+            border: 2px solid var(--color-border);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .timeline-nav-btn:hover {
+            background-color: var(--color-text);
+            border-color: var(--color-text);
+            color: #ffffff;
+        }
+
+        .timeline-nav-btn .material-icons {
+            font-size: 2rem;
+        }
+
+        #prev-btn {
+            left: 10px;
+        }
+
+        #next-btn {
+            right: 10px;
+        }
+        
+        .timeline-nav-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            background-color: #eee;
+        }
+
+        /* --- RESPONSIVIDADE (MOBILE) --- */
+        @media (max-width: 768px) {
+            body { padding: 20px 0; }
+            .timeline-container { padding: 0; }
+            .timeline-line-container { padding: 0 15px; }
+            .timeline-line-bg { left: 15px; right: 15px; }
+            .timeline-item { flex-basis: 280px; margin: 0 10px; transform: scale(0.85); }
+            .timeline-item.active-card { transform: scale(1); }
+            .timeline-nav-btn { width: 40px; height: 40px; }
+            #prev-btn { left: 5px; }
+            #next-btn { right: 5px; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Cronograma de Migração</h1>
+
+    <div class="timeline-line-container">
+        <div class="timeline-line-bg"></div>
+        <ul class="timeline-line-markers" id="timeline-line-markers">
+            </ul>
+    </div>
+
+    <div class="timeline-container">
+        
+        <div class="timeline-viewport">
+            <ul class="timeline-track" id="timeline-track">
+                </ul>
+        </div>
+
+        <button id="prev-btn" class="timeline-nav-btn" aria-label="Anterior">
+            <span class="material-icons">chevron_left</span>
+        </button>
+        <button id="next-btn" class="timeline-nav-btn" aria-label="Próximo">
+            <span class="material-icons">chevron_right</span>
+        </button>
+        
+    </div>
+
+    <script>
+        // Requisito 2: Propriedade para definir o índice da etapa atual
+        // Você pode mudar este número para qualquer índice do array (0 a 5)
+        const currentStepIndex = 3; // Índice 3 corresponde à "Fase 4: Implementação" (o quarto item do array)
+        
+        const timelineData = [
+            {
+                year: "2014",
+                title: "Fase 1: Descoberta",
+                description: "Análise inicial de requisitos e definição da arquitetura do novo sistema.",
+                icon: "lightbulb",
+                color: "var(--color-yellow)"
+            },
+            {
+                year: "2015",
+                title: "Fase 2: Planeamento",
+                description: "Definição de marcos, alocação de recursos e planeamento detalhado da migração.",
+                icon: "calendar_month",
+                color: "var(--color-pink)"
+            },
+            {
+                year: "2016",
+                title: "Fase 3: Design",
+                description: "Design da UI/UX, prototipagem e definição da arquitetura de dados final.",
+                icon: "design_services",
+                color: "var(--color-red)"
+            },
+            {
+                year: "2017",
+                title: "Fase 4: Implementação",
+                description: "Desenvolvimento do núcleo do sistema e início da migração dos dados-piloto.",
+                icon: "movie",
+                color: "var(--color-green)"
+            },
+            {
+                year: "2018",
+                title: "Fase 5: Testes",
+                description: "Testes de integração, testes de stress e garantia de qualidade (QA) completos.",
+                icon: "build",
+                color: "#3498db"
+            },
+            {
+                year: "2019",
+                title: "Fase 6: Lançamento",
+                description: "Lançamento oficial do novo sistema e desativação (sunset) do sistema legado.",
+                icon: "rocket_launch",
+                color: "#9b59b6"
+            }
+        ];
+
+        document.addEventListener("DOMContentLoaded", () => {
+            
+            // Seleciona os elementos do carrossel
+            const track = document.getElementById("timeline-track");
+            const viewport = document.querySelector(".timeline-viewport");
+            const prevBtn = document.getElementById("prev-btn");
+            const nextBtn = document.getElementById("next-btn");
+            
+            // Seleciona o novo elemento (lista de marcadores)
+            const markerList = document.getElementById("timeline-line-markers");
+
+            // Variáveis de estado
+            // Inicializa currentIndex com a etapa atual definida (Requisito 2)
+            let currentIndex = currentStepIndex; 
+            let items = []; // Array para os cartões
+            let markers = []; // Array para os marcadores (pontos)
+
+            // --- FUNÇÃO PARA GERAR OS CARTÕES E MARCADORES (ATUALIZADA) ---
+            function generateTimeline() {
+                track.innerHTML = '';
+                markerList.innerHTML = ''; // Limpa também a lista de marcadores
+                
+                timelineData.forEach((item, index) => {
+                    
+                    // --- 1. Criar o Cartão ---
+                    const li = document.createElement('li');
+                    li.classList.add('timeline-item');
+                    li.dataset.index = index; 
+                    // Define a cor de ativação como uma variável CSS no cartão
+                    li.style.setProperty('--card-color', item.color); 
+                    
+                    // HTML Interno do CARTÃO
+                    li.innerHTML = `
+                        <div class="timeline-item-header">
+                            <h2>${item.year}</h2> </div>
+                        <div class="timeline-item-body">
+                            <h3 class="timeline-item-title">${item.title}</h3> 
+                            <span class="material-icons timeline-icon">${item.icon}</span>
+                            <p>${item.description}</p>
+                        </div>
+                    `;
+                    track.appendChild(li);
+
+                    // --- 2. Criar o Marcador (Ponto) ---
+                    const markerLi = document.createElement('li');
+                    markerLi.classList.add('timeline-marker');
+                    markerLi.dataset.index = index;
+                    // Define a cor no marcador também, para o estado ativo
+                    markerLi.style.setProperty('--card-color', item.color);
+                    markerLi.innerHTML = `<span></span>`; // O <span> é o ponto visual
+                    markerList.appendChild(markerLi);
+                });
+
+                // Atualiza as listas de 'items' e 'markers'
+                items = document.querySelectorAll(".timeline-item");
+                markers = document.querySelectorAll(".timeline-marker");
+            }
+
+            // --- FUNÇÃO PARA ATUALIZAR A VISUALIZAÇÃO (ATUALIZADA) ---
+            function updateCarousel() {
+                if (items.length === 0) return;
+
+                const activeCard = items[currentIndex];
+                
+                // 1. Lógica de centralização (O Efeito de Foco)
+                const viewportWidth = viewport.offsetWidth;
+                const cardWidth = activeCard.offsetWidth;
+                const cardLeft = activeCard.offsetLeft;
+                
+                const offset = (viewportWidth / 2) - (cardLeft + cardWidth / 2);
+                track.style.transform = `translateX(${offset}px)`;
+                
+                // 2. Atualiza as classes 'active-card' e 'active-marker'
+                // Apenas o item cujo índice é igual a currentIndex recebe a classe 'active-card' (Requisito 1)
+                items.forEach((item, index) => {
+                    item.classList.toggle("active-card", index === currentIndex);
+                });
+                
+                markers.forEach((marker, index) => {
+                    marker.classList.toggle("active-marker", index === currentIndex);
+                });
+                
+                // 3. Atualiza o estado dos botões de navegação
+                prevBtn.disabled = currentIndex === 0;
+                nextBtn.disabled = currentIndex === items.length - 1;
+            }
+
+            // --- EVENT LISTENERS ---
+            nextBtn.addEventListener("click", () => {
+                if (currentIndex < items.length - 1) {
+                    currentIndex++;
+                    updateCarousel();
+                }
+            });
+
+            prevBtn.addEventListener("click", () => {
+                if (currentIndex > 0) {
+                    currentIndex--;
+                    updateCarousel();
+                }
+            });
+            
+            window.addEventListener("resize", updateCarousel);
+
+            // --- INICIALIZAÇÃO ---
+            generateTimeline(); // 1. Cria os cartões E os marcadores
+            updateCarousel();   // 2. Centra o cartão e ativa o marcador na etapa inicial
+            
+        });
+    </script>
+</body>
+</html>
