@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu de Treinamento em Cibersegurança</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- 1. Configuração Geral e Fundo --- */
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            /* Cor de fundo solicitada */
+            background-color: #f0f0f0; 
+            color: #1e293b;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        /* Título principal da página */
+        .main-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 3rem;
+            color: #0f172a;
+        }
+
+        /* --- 2. O Grid de Cartões --- */
+        
+        .card-grid {
+            display: grid;
+            /* * Agora com apenas 3 itens, podemos definir 3 colunas
+             * que se transformam em 1 coluna em telas menores.
+            */
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            max-width: 1000px; /* Largura máxima para 3 cartões */
+            width: 100%;
+            margin: 0 auto; /* Centraliza o grid */
+        }
+
+        /* --- 3. Estilo Base do Cartão (Fechado) --- */
+        
+        .card {
+            width: 100%;
+            height: 320px; 
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        .card-image {
+            height: 50%;
+            background-size: cover;
+            background-position: center;
+            border-top-left-radius: 12px;
+            border-top-right-radius: 12px;
+            transition: height 0.5s ease-in-out;
+        }
+
+        .card-body {
+            height: 50%;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: height 0.5s ease-in-out, justify-content 0.5s ease-in-out;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1e293b;
+            text-align: center;
+            /* Transição para a animação de clique */
+            transition: font-size 0.5s ease-in-out, text-align 0.5s ease-in-out, margin-bottom 0.5s ease-in-out;
+        }
+        
+        /* NOVO: Estilo do Subtítulo */
+        .card-subtitle {
+            font-size: 0.9rem;
+            font-weight: 400;
+            color: #64748b; /* Cinza para diferenciar */
+            text-align: center;
+            margin-top: 0.25rem;
+            /* Transições para acompanhar o título */
+            transition: font-size 0.5s ease-in-out, 
+                        text-align 0.5s ease-in-out, 
+                        margin-top 0.5s ease-in-out,
+                        margin-bottom 0.5s ease-in-out;
+        }
+
+        /* Estado oculto para descrição e botão */
+        .card-description,
+        .card-button {
+            opacity: 0;
+            max-height: 0;
+            overflow: hidden;
+            transform: translateY(15px);
+            transition: opacity 0.4s ease-in-out 0.2s, 
+                        max-height 0.4s ease-in-out 0.2s, 
+                        transform 0.4s ease-in-out 0.2s;
+        }
+
+        .card-description {
+            font-size: 0.9rem;
+            color: #64748b;
+            line-height: 1.5;
+        }
+
+        .card-button {
+            display: inline-block;
+            text-decoration: none;
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 99px;
+            margin-top: 1rem;
+            align-self: flex-start;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* --- 4. Estilo do Cartão Ativo (Aberto) --- */
+        
+        .card.active .card-image {
+            height: 0;
+        }
+
+        .card.active .card-body {
+            height: 100%;
+            justify-content: flex-start;
+            align-items: flex-start;
+        }
+
+        .card.active .card-title {
+            font-size: 1.1rem;
+            text-align: left;
+            margin-bottom: 0; /* Título não tem mais margem inferior */
+        }
+        
+        /* NOVO: Estilo do Subtítulo Ativo */
+        .card.active .card-subtitle {
+            text-align: left;
+            margin-top: 0.25rem; /* Espaço do título */
+            margin-bottom: 1rem; /* Espaço para a descrição */
+        }
+
+        .card.active .card-description,
+        .card.active .card-button {
+            opacity: 1;
+            max-height: 150px;
+            transform: translateY(0);
+        }
+        
+        /* --- 5. Cores dos Botões --- */
+        
+        /* Cor 1: Roxo */
+        .card:nth-child(3n+1) .card-button { background-color: #8B5CF6; }
+        /* Cor 2: Azul */
+        .card:nth-child(3n+2) .card-button { background-color: #3B82F6; }
+        /* Cor 3: Verde */
+        .card:nth-child(3n+3) .card-button { background-color: #22C55E; }
+        
+        /* --- 6. Responsividade --- */
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+                /* Permite que os cartões fiquem no centro em telas menores */
+                justify-content: flex-start; 
+            }
+            .main-title {
+                font-size: 2rem;
+                margin-bottom: 2rem;
+            }
+            /* Transforma o grid em 1 coluna */
+            .card-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+                max-width: 340px; /* Largura máxima boa para celular */
+            }
+            .card:hover {
+                transform: none;
+                box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05);
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1 class="main-title">Acompanhamento de migração de sistema</h1>
+
+    <div class="card-grid">
+
+        <div class="card">
+            <div class="card-image" style="background-image: url('https://images.unsplash.com/photo-1517048676732-d65bc937f952?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wzNTA4fDB8MXxzZWFyY2h8MTB8fHJvYWRtYXB8ZW58MHx8fHwxNzE1MTgzMjk0fDA&ixlib=rb-4.0.3&q=80&w=400');"></div>
+            <div class="card-body">
+                <h3 class="card-title">Roadmap</h3>
+                <p class="card-subtitle">Cronograma de migração</p>
+                
+                <p class="card-description">Acompanhe o cronograma da migração etapa por etapa para saebr onde estamso e quais os próximos passos do processo.</p>
+                <a href="#" class="card-button" onclick="event.stopPropagation()">ACESSAR</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-image" style="background-image: url('https://images.unsplash.com/photo-1522202176988-66273c2fd55f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wzNTA4fDB8MXxzZWFyY2h8NHx8dHJhaW5pbmd8ZW58MHx8fHwxNzE1MTgzMzMyfDA&ixlib=rb-4.0.3&q=80&w=400');"></div>
+            <div class="card-body">
+                <h3 class="card-title">Treinamentos</h3>
+                <p class="card-subtitle">Materiais e cronogramas</p>
+
+                <p class="card-description">Aqui você vai encontrar o cronograma de treinamentos, materiais complementares, vídeos e instruçoes, tudo para ajudar na sua transição para nosso novo corebanking.</p>
+                <a href="#" class="card-button" onclick="event.stopPropagation()">ACESSAR</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-image" style="background-image: url('https://images.unsplash.com/photo-1559526324-c1f275fbfa32?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wzNTA4fDB8MXxzZWFyY2h8Nnx8ZmFxfGVufDB8fHx8MTcxNTE4MzM1OHww&ixlib=rb-4.0.3&q=80&w=400');"></div>
+            <div class="card-body">
+                <h3 class="card-title">FAQ</h3>
+                <p class="card-subtitle">Perguntas frequentes</p>
+                
+                <p class="card-description">Perguntas frequentes sobre a migração, sobre as etapas e sobre os processos, tire todas suas dúvidas sobre esse projeto.</p>
+                <a href="#" class="card-button" onclick="event.stopPropagation()">ACESSAR</a>
+            </div>
+        </div>
+
+    </div> 
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            const cards = document.querySelectorAll('.card');
+
+            cards.forEach(card => {
+                card.addEventListener('click', () => {
+                    
+                    // 1. Fecha todos os outros cartões
+                    cards.forEach(c => {
+                        if (c !== card) {
+                            c.classList.remove('active');
+                        }
+                    });
+
+                    // 2. Alterna o cartão clicado
+                    card.classList.toggle('active');
+                });
+            });
+            
+            /* * Adiciona o stopPropagation a todos os botões
+             * para evitar que o card feche ao clicar no link.
+            */
+            const buttons = document.querySelectorAll('.card-button');
+            buttons.forEach(button => {
+                button.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                });
+            });
+        });
+    </script>
+
+</body>
+</html>
