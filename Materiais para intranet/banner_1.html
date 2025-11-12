@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mensagem Motivacional CrediSeara</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f2f5; /* Um fundo suave para contrastar */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden; /* Garante que nada saia da tela */
+        }
+
+        .motivation-container {
+            text-align: center;
+            position: relative;
+            width: 100%;
+            max-width: 800px; /* Largura máxima para o conteúdo */
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .word {
+            display: inline-block;
+            opacity: 0;
+            transform: translateY(20px);
+            /* Transição mais longa para um fade-in e movimento mais suaves */
+            transition: opacity 1.0s ease-out, transform 1.0s ease-out; /* Aumentado para 1.0s */
+            font-size: 2.5em; /* Tamanho maior para as palavras individuais */
+            font-weight: bold;
+            color: #333;
+            margin: 0 5px; /* Espaçamento entre as palavras */
+        }
+
+        .phrase-complete {
+            opacity: 0;
+            transform: translateY(20px);
+            /* Transição mais longa para frase completa */
+            transition: opacity 1.2s ease-out, transform 1.2s ease-out; /* Aumentado para 1.2s */
+            font-size: 2.2em; /* Tamanho para a frase completa */
+            font-weight: bold;
+            color: #28a745; /* Cor verde para a mensagem principal */
+            margin-top: 20px;
+            display: block;
+        }
+
+        .logo-container {
+            opacity: 0;
+            transform: translateY(20px);
+            /* Transição mais longa para o logo */
+            transition: opacity 1.2s ease-out, transform 1.2s ease-out; /* Aumentado para 1.2s */
+            margin-top: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .logo-container img {
+            max-width: 250px; /* Tamanho do logo */
+            height: auto;
+        }
+
+        .logo-container.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .word.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .phrase-complete.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Estilos para as imagens de referência (não são usadas na animação, apenas para visualização) */
+        .reference-images {
+            display: none; /* Oculta as imagens de referência no HTML final */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="motivation-container">
+        <!-- As palavras individuais aparecerão aqui --><div id="word-animation"></div>
+        
+        <!-- A frase completa aparecerá aqui --><div id="phrase-animation" class="phrase-complete"></div>
+        
+        <!-- O logo aparecerá aqui --><div id="logo-animation" class="logo-container">
+            <!-- ATUALIZE O CAMINHO DA IMAGEM SE NECESSÁRIO --><img src="logotipo CREDISEARA.png" alt="Logo CrediSeara" onerror="this.onerror=null; this.src='https://placehold.co/250x100/28a745/FFFFFF?text=CrediSeara';">
+        </div>
+    </div>
+
+    <!-- Imagens de referência (ocultas) --><div class="reference-images">
+        <img src="2e4c9031-43bf-4bde-8dc0-0015c4f5cac9.png" alt="Referência 1">
+        <img src="d67f4c61-0e20-44dc-bd18-9b09d9b07690.png" alt="Referência 2">
+        <img src="design-de-modelo-de-banner-de-discordia_742173-15967.avif" alt="Referência 3">
+        <img src="10.png" alt="Referência 4">
+        <img src="Mag---Banner-blog---Frases-Bonitas-para-caixa-de-envios.jpg" alt="Referência 5">
+        <img src="651713285260iqdhsilmbyosq60p23cy2nrpn15i3o2h2jfdn3uqh6tamcqpdksjfmmijfpnlsbq8obmftjzcg9kzw2lc3wjqttizwg25fccwisz.jpg" alt="Referência 6">
+        <img src="images.jpg" alt="Referência 7">
+    </div>
+
+    <script>
+        const message = "Uma CrediSeara mais moderna, segura e confiável para cuidar de quem confia na gente.";
+        const words = message.split(' ');
+        const wordAnimationDiv = document.getElementById('word-animation');
+        const phraseAnimationDiv = document.getElementById('phrase-animation');
+        const logoAnimationDiv = document.getElementById('logo-animation');
+        
+        // Define a duração da transição (em ms) do CSS para as palavras individuais
+        const wordTransitionDuration = 1000; // Deve ser igual ao tempo em CSS (1.0s)
+        
+        // Define o atraso para a próxima palavra (metade da duração da palavra)
+        const wordDelay = wordTransitionDuration / 2.5; // Aproximadamente 400ms. Ajuste para sentir a onda
+
+        const phraseTransitionDuration = 1200; // 1.2s do CSS
+        const logoTransitionDuration = 1200; // 1.2s do CSS
+
+        let wordIndex = 0;
+        let animationTimeout;
+        let wordSpans = []; // Array para guardar as spans das palavras
+
+        function animateWords() {
+            // Limpa as divs para o reinício do loop
+            wordAnimationDiv.innerHTML = ''; 
+            phraseAnimationDiv.classList.remove('active');
+            logoAnimationDiv.classList.remove('active');
+            wordIndex = 0;
+            wordSpans = []; // Limpa o array de spans
+
+            // *** NOVA LÓGICA: Criar todas as spans de uma vez ***
+            // Isso fixa a posição de cada palavra desde o início.
+            words.forEach(word => {
+                const span = document.createElement('span');
+                span.textContent = word;
+                span.classList.add('word'); // Começa invisível e fora de posição
+                wordAnimationDiv.appendChild(span);
+                wordSpans.push(span); // Guarda a referência da span
+            });
+
+            // Inicia a animação de revelação
+            showNextWord();
+        }
+
+        function showNextWord() {
+            if (wordIndex < wordSpans.length) {
+                // *** LÓGICA ATUALIZADA: Apenas revela a palavra ***
+                // Não precisa mais criar o elemento, apenas ativa o que já existe.
+                const span = wordSpans[wordIndex];
+                
+                // Não é mais necessário forçar o reflow (void span.offsetWidth;)
+                // porque o elemento já estava no DOM.
+                span.classList.add('active');
+
+                wordIndex++;
+                animationTimeout = setTimeout(showNextWord, wordDelay); 
+            } else {
+                // Todas as palavras foram iniciadas
+                    // Espera a última palavra terminar + um tempo de pausa
+                    const timeToWait = wordTransitionDuration + 1800; // 1s (última palavra) + 1.8s (pausa)
+                    animationTimeout = setTimeout(showCompletePhrase, timeToWait);
+            }
+        }
+
+        function showCompletePhrase() {
+            wordAnimationDiv.innerHTML = ''; // Limpa as palavras individuais
+            phraseAnimationDiv.textContent = message;
+            phraseAnimationDiv.classList.add('active');
+            
+            // Espera a frase completa aparecer + pausa
+            animationTimeout = setTimeout(showLogo, phraseTransitionDuration + 2000); // 1.2s (transição) + 2s (pausa)
+        }
+
+        function showLogo() {
+            phraseAnimationDiv.classList.remove('active'); // Esconde a frase completa
+            logoAnimationDiv.classList.add('active');
+
+            // Espera o logo aparecer + pausa
+            animationTimeout = setTimeout(resetAnimation, logoTransitionDuration + 2500); // 1.2s (transição) + 2.5s (pausa)
+        }
+
+        function resetAnimation() {
+            // Esconde o logo para reiniciar
+            logoAnimationDiv.classList.remove('active');
+            
+            // Espera a transição de saída do logo antes de recomeçar
+            animationTimeout = setTimeout(animateWords, logoTransitionDuration + 100); // 1.2s (transição) + 0.1s (buffer)
+        }
+
+        // Inicia a animação quando a página carrega
+        window.onload = animateWords;
+    </script>
+
+</body>
+</html>

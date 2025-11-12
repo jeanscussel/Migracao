@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timeline Interativa do Projeto</title>
+    <!-- Importação da fonte Inter do Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- Variáveis de Design (Altere aqui para customizar) --- */
+        :root {
+            --cor-primaria: #67BD50; /* Azul do cartão de etapa atual */
+            --cor-primaria-clara: #fafff8; /* Fundo do cartão de etapa atual */
+            --cor-inativa: #d1d5db;     /* Cinza dos cartões inativos */
+            --cor-inativa-clara: #f3f4f6; /* Fundo dos cartões inativos */
+            --cor-linha: #017142;      /* Cor da linha do tempo */
+            --cor-marcador: #6b7280;   /* Cor dos marcadores de evento inativos */
+            --cor-texto: #111827;
+            --cor-texto-claro: #4b5563;
+            --cor-fundo: #ffffff;
+            --fonte-principal: 'Inter', sans-serif;
+            --tamanho-cartao: 280px; /* Largura de cada cartão */
+            --espaco-cartao: 60px;   /* Espaço entre os cartões */
+        }
+
+        /* --- Estilização Base --- */
+        body {
+            font-family: var(--fonte-principal);
+            background-color: var(--cor-fundo);
+            color: var(--cor-texto);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow: hidden; /* Evita barras de scroll na página inteira */
+        }
+
+        /* --- Container Principal da Timeline --- */
+        .timeline-container {
+            width: 100%;
+            max-width: 1000px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* --- Viewport (A "janela" visível da timeline) --- */
+        .timeline-viewport {
+            width: 100%;
+            overflow: hidden; /* Esconde o conteúdo que transborda */
+        }
+
+        /* --- Faixa de Scroll (Contém todos os eventos) --- */
+        .timeline-track {
+            display: flex;
+            align-items: center;
+            position: relative;
+            height: 625px; /* Altura aumentada de 450px para 550px para dar espaço ao scale */
+            
+            /* Transição suave para o scroll */
+            transition: transform 1s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+
+        /* --- A Linha Azul Horizontal --- */
+        .timeline-bar {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background-color: var(--cor-linha);
+            transform: translateY(-50%);
+            z-index: 1;
+        }
+
+        /* --- Container de um Evento (Marcador + Cartão) --- */
+        .timeline-event {
+            position: relative;
+            width: var(--tamanho-cartao);
+            margin: 0 calc(var(--espaco-cartao) / 2);
+            flex-shrink: 0; /* Impede que os cartões encolham */
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        /* --- Marcador na Linha (A bolinha) --- */
+        .event-marker {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: var(--cor-marcador);
+            border: 4px solid var(--cor-fundo);
+            transform: translate(-50%, -50%);
+            z-index: 15;
+            transition: all 0.4s ease;
+        }
+
+        /* --- Cartão de Conteúdo --- */
+        .event-card {
+            width: 100%;
+            border-radius: 12px;
+            background-color: var(--cor-fundo);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            position: absolute;
+            left: 50%;
+            
+            /* Transição suave para o efeito de escala */
+            transition: all 0.4s ease-in-out;
+            
+            /* Começa pequeno e ligeiramente transparente */
+            transform: translateX(-50%) scale(0.9);
+            opacity: 0.5;
+        }
+
+        /* Posiciona cartões ímpares em cima */
+        .timeline-event:nth-child(odd) .event-card {
+            bottom: calc(50% + 70px); /* 50% (linha) + 40px de espaço */
+        }
+
+        /* Posiciona cartões pares em baixo */
+        .timeline-event:nth-child(even) .event-card {
+            top: calc(50% + 70px); /* 50% (linha) + 40px de espaço */
+        }
+
+        /* --- Estilos do Header do Cartão (Data) --- */
+        .card-header {
+            padding: 12px 16px;
+            background-color: var(--cor-inativa-clara);
+            color: var(--cor-texto-claro);
+            font-weight: 600;
+            border-top-left-radius: 12px;
+            border-top-right-radius: 12px;
+            transition: all 0.4s ease;
+            text-align: center;
+        }
+
+        /* --- Estilos do Corpo do Cartão (Título e Texto) --- */
+        .card-body {
+            padding: 16px;
+            height: 110px; /* <-- ADICIONE ESTA LINHA (ajuste o valor como preferir) */
+            overflow-y: auto; /* <-- ADICIONE ESTA LINHA (para scroll interno) */
+        }
+
+        .card-body h3 {
+            margin: 0 0 8px 0;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--cor-texto);
+        }
+
+        .card-body p {
+            margin: 0;
+            font-size: 0.6rem;
+            color: var(--cor-texto-claro);
+            line-height: 1.5;
+        }
+        
+        /* --- ESTILOS DE "ETAPA ATUAL" E "FOCO" --- */
+
+        /* * .active: O cartão que está VISUALMENTE no centro (controlado por JS)
+         * .current-step: O cartão que é a ETAPA ATUAL do projeto (controlado por ti nos dados)
+         */
+
+        /* 1. Estilo do Cartão em Foco (Centro da Tela) */
+        .timeline-event.active .event-card {
+            transform: translateX(-50%) scale(1.15); /* Fica maior */
+            opacity: 1;
+            z-index: 20;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        /* 2. Estilo da Etapa Atual do Projeto (O cartão azul) */
+        .timeline-event.current-step .event-card {
+            background-color: var(--cor-primaria-clara);
+        }
+
+        .timeline-event.current-step .card-header {
+            background-color: var(--cor-primaria);
+            color: #ffffff;
+        }
+
+        .timeline-event.current-step .event-marker {
+            background-color: #ffffff;
+            border: 5px solid var(--cor-linha);
+            width: 24px;
+            height: 24px;
+        }
+
+        /* Otimização: A etapa atual, quando também está em foco, fica ainda maior */
+        .timeline-event.current-step.active .event-card {
+            transform: translateX(-50%) scale(1.35);
+        }
+
+        /* --- Botões de Navegação --- */
+        .nav-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 44px;
+            height: 44px;
+            background-color: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .nav-arrow:hover {
+            background-color: #f9f9f9;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        .nav-arrow.left {
+            left: -22px; /* Metade para fora do container */
+        }
+
+        .nav-arrow.right {
+            right: -22px; /* Metade para fora do container */
+        }
+
+        .nav-arrow svg {
+            width: 24px;
+            height: 24px;
+            color: var(--cor-linha);
+        }
+        
+        /* Esconde botões em telas pequenas (o scroll por toque é mais comum) */
+        @media (max-width: 768px) {
+            .nav-arrow {
+                display: none;
+            }
+
+            /* Em mobile, permite scroll por toque */
+            .timeline-viewport {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch; /* Scroll suave em iOS */
+                scrollbar-width: none; /* Esconde scrollbar (Firefox) */
+            }
+
+            .timeline-viewport::-webkit-scrollbar {
+                display: none; /* Esconde scrollbar (Chrome, Safari) */
+            }
+
+            /* Em mobile, desativa o "foco" e centralização por JS */
+            .timeline-event.active .event-card,
+            .timeline-event.current-step.active .event-card {
+                transform: translateX(-50%) scale(1); /* Tamanho normal */
+                opacity: 1;
+            }
+            
+            .event-card {
+                transform: translateX(-50%) scale(1); /* Tamanho normal */
+                opacity: 1;
+            }
+
+            .timeline-track {
+                /* Adiciona padding nas pontas para o scroll por toque */
+                padding: 0 40px;
+                height: 600px; /* Mais altura em mobile */
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Estrutura HTML da Timeline -->
+    <div class="timeline-container">
+        
+        <!-- Botão Esquerda -->
+        <div class="nav-arrow left" id="nav-left" aria-label="Etapa anterior">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+            </svg>
+        </div>
+
+        <!-- Viewport (Janela) -->
+        <div class="timeline-viewport" id="timeline-viewport">
+            
+            <!-- Faixa de Scroll (Conteúdo) -->
+            <div class="timeline-track" id="timeline-track">
+                <!-- A linha azul será colocada aqui pelo JS -->
+                
+                <!-- Os eventos da timeline serão injetados aqui pelo JS -->
+            </div>
+
+        </div>
+        
+        <!-- Botão Direita -->
+        <div class="nav-arrow right" id="nav-right" aria-label="Próxima etapa">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+            </svg>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+
+            // --- 1. OS DADOS DA TIMELINE ---
+            // Altere esta lista para atualizar o conteúdo.
+            // Para marcar a etapa atual, basta colocar "etapaAtual: true"
+            // Só deve haver UM item com "etapaAtual: true"
+            const timelineData = [
+                {
+                    data: "01/12/2025",
+                    titulo: "Início do Planeamento",
+                    descricao: "Reunião de kickoff com todas as equipas para definir o escopo, objetivos e os responsáveis pela migração.",
+                    etapaAtual: false
+                },
+                {
+                    data: "06/12/2025",
+                    titulo: "Mapeamento de Dados",
+                    descricao: "Análise e mapeamento detalhado de todas as tabelas e dados do sistema legado para o novo sistema.",
+                    etapaAtual: false
+                },
+                {
+                    data: "10/12/2025",
+                    titulo: "Migração Piloto",
+                    descricao: "Primeira migração de dados em ambiente de teste (sandbox) para identificar falhas e validar o processo.",
+                    etapaAtual: true // <--- ESTA É A ETAPA ATUAL
+                },
+                {
+                    data: "20/12/2025",
+                    titulo: "Testes e Validação",
+                    descricao: "Equipas de Q.A. e utilizadores-chave realizam testes de aceitação para validar a integridade dos dados.",
+                    etapaAtual: false
+                },
+                {
+                    data: "04/01/2026",
+                    titulo: "Go-Live (Produção)",
+                    descricao: "Migração final e transição oficial para o novo sistema. Acompanhamento intensivo nas primeiras 48h.",
+                    etapaAtual: false
+                }
+            ];
+
+            // --- 2. REFERÊNCIAS AOS ELEMENTOS DO DOM ---
+            const track = document.getElementById('timeline-track');
+            const viewport = document.getElementById('timeline-viewport');
+            const navLeft = document.getElementById('nav-left');
+            const navRight = document.getElementById('nav-right');
+
+            // --- 3. ESTADO DA TIMELINE ---
+            let currentIndex = 0; // Índice do evento que está no centro
+            let eventWidth = 0;   // Largura de cada "fatia" do evento
+
+            // --- 4. FUNÇÃO PARA RENDERIZAR A TIMELINE ---
+            function renderTimeline() {
+                track.innerHTML = ''; // Limpa a timeline atual
+
+                // Adiciona a barra azul
+                const bar = document.createElement('div');
+                bar.className = 'timeline-bar';
+                track.appendChild(bar);
+
+                // Encontra o índice da etapa atual
+                const currentStepIndex = timelineData.findIndex(item => item.etapaAtual);
+                currentIndex = (currentStepIndex !== -1) ? currentStepIndex : 0;
+
+                // Cria e adiciona cada evento na faixa
+                timelineData.forEach((item, index) => {
+                    const eventEl = document.createElement('div');
+                    eventEl.className = 'timeline-event';
+                    
+                    // Adiciona a classe da etapa atual
+                    if (item.etapaAtual) {
+                        eventEl.classList.add('current-step');
+                    }
+                    
+                    // Guarda o índice no elemento para o evento de clique
+                    eventEl.dataset.index = index;
+
+                    // Cria o marcador
+                    const markerEl = document.createElement('div');
+                    markerEl.className = 'event-marker';
+                    
+                    // Cria o cartão
+                    const cardEl = document.createElement('div');
+                    cardEl.className = 'event-card';
+                    cardEl.innerHTML = `
+                        <div class="card-header">${item.data}</div>
+                        <div class="card-body">
+                            <h3>${item.titulo}</h3>
+                            <p>${item.descricao}</p>
+                        </div>
+                    `;
+
+                    eventEl.appendChild(markerEl);
+                    eventEl.appendChild(cardEl);
+                    track.appendChild(eventEl);
+                    
+                    // Evento de clique para centrar o cartão
+                    eventEl.addEventListener('click', () => {
+                        currentIndex = index;
+                        updateTimeline();
+                    });
+                });
+
+                // Define as larguras e a posição inicial
+                updateDimensionsAndPosition();
+            }
+
+            // --- 5. FUNÇÃO PARA ATUALIZAR A POSIÇÃO DA TIMELINE ---
+            function updateTimeline() {
+                if (window.innerWidth <= 768) {
+                    // Em mobile, desativa a centralização por JS
+                    track.style.transform = 'translateX(0)';
+                    return; 
+                }
+
+                // Calcula o quanto mover a faixa (track)
+                const viewportWidth = viewport.offsetWidth;
+                
+                // O deslocamento é:
+                // 1. O índice atual vs a largura do evento (move o evento para a borda esquerda)
+                // 2. Metade da largura da viewport (move a borda esquerda para o centro)
+                // 3. Metade da largura do evento (move o centro do evento para o centro)
+                const offset = (viewportWidth / 2) - (eventWidth / 2);
+                const transformX = -currentIndex * eventWidth + offset;
+
+                track.style.transform = `translateX(${transformX}px)`;
+
+                // Atualiza a classe 'active' para o efeito de foco
+                track.querySelectorAll('.timeline-event').forEach((el, index) => {
+                    el.classList.toggle('active', index === currentIndex);
+                });
+                
+                // Ativa/desativa botões de navegação nas pontas
+                navLeft.style.display = (currentIndex === 0) ? 'none' : 'flex';
+                navRight.style.display = (currentIndex === timelineData.length - 1) ? 'none' : 'flex';
+            }
+            
+            // --- 6. FUNÇÃO PARA CALCULAR LARGURAS ---
+            function updateDimensionsAndPosition() {
+                if (track.children.length > 1) {
+                    // Pega a largura do primeiro evento (o segundo filho, pois o primeiro é a barra)
+                    const firstEvent = track.children[1];
+                    if (firstEvent) {
+                        const style = window.getComputedStyle(firstEvent);
+                        const margin = parseFloat(style.marginLeft) + parseFloat(style.marginRight);
+                        eventWidth = firstEvent.offsetWidth + margin;
+                    }
+                }
+                
+                // Define a largura total da faixa (para a barra azul se estender)
+                const totalWidth = eventWidth * timelineData.length;
+                track.style.width = `${totalWidth}px`;
+                
+                // Reposiciona a timeline
+                updateTimeline();
+            }
+
+            // --- 7. EVENT LISTENERS PARA NAVEGAÇÃO ---
+            navLeft.addEventListener('click', () => {
+                if (currentIndex > 0) {
+                    currentIndex--;
+                    updateTimeline();
+                }
+            });
+
+            navRight.addEventListener('click', () => {
+                if (currentIndex < timelineData.length - 1) {
+                    currentIndex++;
+                    updateTimeline();
+                }
+            });
+            
+            // Recalcula tudo se a janela for redimensionada
+            window.addEventListener('resize', updateDimensionsAndPosition);
+
+            // --- 8. INICIAÇÃO ---
+            renderTimeline();
+        });
+    </script>
+
+</body>
+</html>
