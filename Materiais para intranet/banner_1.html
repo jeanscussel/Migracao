@@ -11,7 +11,7 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background-color: #f0f2f5; /* Um fundo suave para contrastar */
+            background-color: transparent; /* Um fundo suave para contrastar */
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             overflow: hidden; /* Garante que nada saia da tela */
         }
@@ -23,6 +23,26 @@
             max-width: 800px; /* Largura máxima para o conteúdo */
             padding: 20px;
             box-sizing: border-box;
+
+            /* *** NOVAS LINHAS *** */
+            /* Define um "palco" com altura mínima */
+            min-height: 300px; 
+            /* Transforma o container em um grid */
+            display: grid;
+            /* Centraliza tudo (horizontal E verticalmente) */
+            place-items: center;
+        }
+
+        /* *** NOVA REGRA *** */
+        /* Faz com que todos os filhos diretos do container... */
+        #word-animation,
+        #phrase-animation,
+        #logo-animation {
+            /* ...ocupem a MESMA célula do grid (uma em cima da outra) */
+            grid-column: 1 / -1;
+            grid-row: 1 / -1;
+            /* Garante que peguem a largura total */
+            width: 100%; 
         }
 
         .word {
@@ -33,7 +53,7 @@
             transition: opacity 1.0s ease-out, transform 1.0s ease-out; /* Aumentado para 1.0s */
             font-size: 2.5em; /* Tamanho maior para as palavras individuais */
             font-weight: bold;
-            color: #333;
+            color: #017142;
             margin: 0 5px; /* Espaçamento entre as palavras */
         }
 
@@ -45,7 +65,7 @@
             font-size: 2.2em; /* Tamanho para a frase completa */
             font-weight: bold;
             color: #28a745; /* Cor verde para a mensagem principal */
-            margin-top: 20px;
+            /* margin-top: 20px; <-- REMOVIDO (não é mais necessário) */
             display: block;
         }
 
@@ -54,7 +74,7 @@
             transform: translateY(20px);
             /* Transição mais longa para o logo */
             transition: opacity 1.2s ease-out, transform 1.2s ease-out; /* Aumentado para 1.2s */
-            margin-top: 40px;
+            /* margin-top: 40px; <-- REMOVIDO (não é mais necessário) */
             display: flex;
             justify-content: center;
             align-items: center;
@@ -95,7 +115,7 @@
         <!-- A frase completa aparecerá aqui --><div id="phrase-animation" class="phrase-complete"></div>
         
         <!-- O logo aparecerá aqui --><div id="logo-animation" class="logo-container">
-            <!-- ATUALIZE O CAMINHO DA IMAGEM SE NECESSÁRIO --><img src="logotipo CREDISEARA.png" alt="Logo CrediSeara" onerror="this.onerror=null; this.src='https://placehold.co/250x100/28a745/FFFFFF?text=CrediSeara';">
+            <!-- ATUALIZE O CAMINHO DA IMAGEM SE NECESSÁRIO --><img src="https://github.com/jeanscussel/Migracao/blob/main/img/logotipo.png?raw=true" alt="Logo CrediSeara" onerror="this.onerror=null; this.src='https://placehold.co/250x100/28a745/FFFFFF?text=CrediSeara';">
         </div>
     </div>
 
