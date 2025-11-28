@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Central de Treinamento</title>
+    <!-- Tailwind CSS (Estilos) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons (Ícones) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        /* Esconder barra de rolagem horizontal em mobile */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-white font-sans text-slate-800 p-4 sm:p-6">
+
+    <!-- HEADER & HERO SECTION -->
+    <header class="mb-8 border-b border-slate-100 pb-6">
+        <h1 class="text-3xl font-bold text-slate-900 mb-2">Central de Treinamento - Migração de Sistema</h1>
+        <p class="text-slate-500 max-w-2xl text-lg">
+            Encontre guias, vídeos e manuais para auxiliar sua adaptação ao novo sistema.
+        </p>
+
+        <!-- SEARCH BAR -->
+        <div class="mt-6 relative max-w-xl">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <i data-lucide="search" class="h-5 w-5 text-slate-400"></i>
+            </div>
+            <input
+                type="text"
+                id="searchInput"
+                class="block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-lg leading-5 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition shadow-sm"
+                placeholder="O que você precisa aprender hoje? (ex: Notas, Cadastro, Estoque...)"
+            >
+        </div>
+    </header>
+
+    <!-- FILTERS SECTION -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <!-- Tabs (Categorias) -->
+        <div class="flex space-x-1 bg-slate-100 p-1 rounded-lg overflow-x-auto max-w-full no-scrollbar" id="categoryTabs">
+            <!-- Botões gerados via JS -->
+        </div>
+
+        <!-- Tag Select -->
+        <select 
+            id="tagFilter"
+            class="block w-full sm:w-auto pl-3 pr-10 py-2 text-base border-slate-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-white border cursor-pointer hover:bg-slate-50 transition"
+        >
+            <option value="todas">Todos os departamentos</option>
+            <!-- Opções geradas via JS -->
+        </select>
+    </div>
+
+    <!-- CONTENT GRID -->
+    <div id="contentGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Cards gerados via JS -->
+    </div>
+
+    <!-- EMPTY STATE (Escondido por padrão) -->
+    <div id="emptyState" class="hidden text-center py-20 bg-slate-50 rounded-lg border border-dashed border-slate-300">
+        <div class="mx-auto h-12 w-12 text-slate-300 flex justify-center items-center">
+            <i data-lucide="search" class="w-12 h-12"></i>
+        </div>
+        <h3 class="mt-2 text-sm font-medium text-slate-900">Nenhum conteúdo encontrado</h3>
+        <p class="mt-1 text-sm text-slate-500">
+            Tente buscar por outros termos ou limpar os filtros.
+        </p>
+        <button id="clearFiltersBtn" class="mt-6 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            Limpar filtros
+        </button>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="mt-12 pt-6 border-t border-slate-200 text-center text-sm text-slate-400">
+        <p>Não encontrou o que precisava? Entre em contato com o time de TI ou RH.</p>
+        <p class="mt-1" id="footerYear"></p>
+    </div>
+
+    <!-- SCRIPT LOGIC -->
+    <script>
+        // --- CONFIGURAÇÃO DOS DADOS ---
+        const contentData = [
+            {
+                id: 1,
+                title: "Visão Geral do Novo Sistema ERP",
+                description: "Treinamento completo gravado apresentando a nova interface e conceitos básicos da migração.",
+                category: "treinamento",
+                tags: ["Geral", "Onboarding"],
+                link: "https://youtube.com",
+                format: "Video (45min)"
+            },
+            {
+                id: 2,
+                title: "Como emitir Nota Fiscal de Serviços",
+                description: "Passo a passo rápido para emissão de NFS-e no novo módulo financeiro.",
+                category: "video",
+                tags: ["Financeiro", "Operacional"],
+                link: "https://google.com",
+                format: "Video Curto (3min)"
+            },
+            {
+                id: 3,
+                title: "POP-FIN-02: Cadastro de Fornecedores",
+                description: "Procedimento Operacional Padrão detalhando os campos obrigatórios para cadastro.",
+                category: "pop",
+                tags: ["Financeiro", "Cadastro"],
+                link: "https://docs.google.com",
+                format: "PDF Download"
+            },
+            {
+                id: 4,
+                title: "Manual Completo: Módulo de Logística",
+                description: "Documentação técnica completa sobre entradas, saídas e gestão de estoque.",
+                category: "manual",
+                tags: ["Logística", "Estoque"],
+                link: "#",
+                format: "E-book PDF"
+            },
+            {
+                id: 5,
+                title: "Atendimento ao Cooperado: O que muda?",
+                description: "Tutorial sobre como consultar a ficha do cooperado na nova tela de CRM.",
+                category: "pop",
+                tags: ["Atendimento", "Comercial"],
+                link: "#",
+                format: "Tutorial Web"
+            },
+            {
+                id: 6,
+                title: "Recursos Humanos: Batida de Ponto Digital",
+                description: "Aprenda a utilizar o novo aplicativo para registro de ponto.",
+                category: "video",
+                tags: ["RH", "Geral"],
+                link: "#",
+                format: "Video Curto (2min)"
+            }
+        ];
+
+        const categories = [
+            { id: 'todos', label: 'Todos os Recursos' },
+            { id: 'treinamento', label: 'Treinamentos Completos' },
+            { id: 'video', label: 'Vídeos Curtos' },
+            { id: 'pop', label: 'POPs e Tutoriais' },
+            { id: 'manual', label: 'Manuais Operacionais' },
+        ];
+
+        // --- ESTADO DA APLICAÇÃO ---
+        let state = {
+            activeTab: 'todos',
+            searchQuery: '',
+            selectedTag: 'todas'
+        };
+
+        // --- ELEMENTOS DO DOM ---
+        const gridEl = document.getElementById('contentGrid');
+        const emptyStateEl = document.getElementById('emptyState');
+        const searchInput = document.getElementById('searchInput');
+        const tagFilterSelect = document.getElementById('tagFilter');
+        const tabsContainer = document.getElementById('categoryTabs');
+        const clearBtn = document.getElementById('clearFiltersBtn');
+
+        // --- FUNÇÕES AUXILIARES ---
+        function getIconName(category) {
+            switch(category) {
+                case 'treinamento': return 'monitor-play';
+                case 'video': return 'play-circle';
+                case 'pop': return 'file-text';
+                case 'manual': return 'book-open';
+                default: return 'info';
+            }
+        }
+
+        function getBadgeStyles(category) {
+            switch(category) {
+                case 'treinamento': return 'bg-purple-100 text-purple-800 border-purple-200';
+                case 'video': return 'bg-red-100 text-red-800 border-red-200';
+                case 'pop': return 'bg-blue-100 text-blue-800 border-blue-200';
+                case 'manual': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+                default: return 'bg-gray-100 text-gray-800';
+            }
+        }
+
+        function getIconColorClass(category) {
+            switch(category) {
+                case 'treinamento': return 'text-purple-600';
+                case 'video': return 'text-red-500';
+                case 'pop': return 'text-blue-500';
+                case 'manual': return 'text-emerald-600';
+                default: return 'text-gray-500';
+            }
+        }
+
+        function getCategoryLabel(category) {
+            if (category === 'pop') return 'POP / Tutorial';
+            if (category === 'treinamento') return 'Treinamento';
+            return category.charAt(0).toUpperCase() + category.slice(1);
+        }
+
+        // --- INICIALIZAÇÃO ---
+        function init() {
+            // 1. Popular Select de Tags
+            const allTags = [...new Set(contentData.flatMap(item => item.tags))].sort();
+            allTags.forEach(tag => {
+                const option = document.createElement('option');
+                option.value = tag;
+                option.textContent = tag;
+                tagFilterSelect.appendChild(option);
+            });
+
+            // 2. Set Footer Year
+            document.getElementById('footerYear').textContent = `© ${new Date().getFullYear()} Intranet Corporativa`;
+
+            // 3. Renderizar Tabs e Conteúdo inicial
+            renderTabs();
+            renderContent();
+        }
+
+        // --- RENDERIZAÇÃO ---
+        function renderTabs() {
+            tabsContainer.innerHTML = '';
+            categories.forEach(cat => {
+                const btn = document.createElement('button');
+                btn.textContent = cat.label;
+                btn.className = `px-4 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap ${
+                    state.activeTab === cat.id
+                    ? 'bg-white text-blue-700 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                }`;
+                btn.onclick = () => {
+                    state.activeTab = cat.id;
+                    renderTabs(); // Re-render para atualizar classe ativa
+                    renderContent();
+                };
+                tabsContainer.appendChild(btn);
+            });
+        }
+
+        function renderContent() {
+            // Filtragem
+            const filtered = contentData.filter(item => {
+                const matchesCategory = state.activeTab === 'todos' || item.category === state.activeTab;
+                const matchesSearch = item.title.toLowerCase().includes(state.searchQuery.toLowerCase()) || 
+                                    item.description.toLowerCase().includes(state.searchQuery.toLowerCase());
+                const matchesTag = state.selectedTag === 'todas' || item.tags.includes(state.selectedTag);
+                return matchesCategory && matchesSearch && matchesTag;
+            });
+
+            // Atualizar View
+            gridEl.innerHTML = '';
+            
+            if (filtered.length === 0) {
+                gridEl.classList.add('hidden');
+                emptyStateEl.classList.remove('hidden');
+            } else {
+                gridEl.classList.remove('hidden');
+                emptyStateEl.classList.add('hidden');
+
+                filtered.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = "group bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all duration-200 flex flex-col h-full";
+                    
+                    // Ícone BG Color
+                    const iconBgClass = item.category === 'treinamento' ? 'bg-purple-50' : 
+                                      item.category === 'video' ? 'bg-red-50' :
+                                      item.category === 'pop' ? 'bg-blue-50' : 'bg-emerald-50';
+
+                    card.innerHTML = `
+                        <div class="p-5 flex-1">
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="p-2 rounded-lg bg-opacity-50 ${iconBgClass}">
+                                    <i data-lucide="${getIconName(item.category)}" class="w-6 h-6 ${getIconColorClass(item.category)}"></i>
+                                </div>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getBadgeStyles(item.category)}">
+                                    ${getCategoryLabel(item.category)}
+                                </span>
+                            </div>
+
+                            <h3 class="text-lg font-semibold text-slate-900 mb-2 group-hover:text-blue-700 transition-colors">
+                                ${item.title}
+                            </h3>
+                            <p class="text-slate-500 text-sm mb-4 line-clamp-3">
+                                ${item.description}
+                            </p>
+
+                            <div class="flex flex-wrap gap-2 mb-4">
+                                ${item.tags.map(tag => `<span class="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded">#${tag}</span>`).join('')}
+                            </div>
+                        </div>
+
+                        <div class="px-5 py-4 bg-slate-50 rounded-b-xl border-t border-slate-100 flex items-center justify-between">
+                            <div class="text-xs text-slate-400 font-medium flex items-center gap-1">
+                                ${item.format}
+                            </div>
+                            <button onclick="window.open('${item.link}', '_blank', 'noopener,noreferrer')" 
+                                class="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors cursor-pointer">
+                                Acessar
+                                <i data-lucide="external-link" class="ml-1 w-4 h-4"></i>
+                            </button>
+                        </div>
+                    `;
+                    gridEl.appendChild(card);
+                });
+            }
+
+            // Re-inicializar ícones Lucide nos novos elementos
+            lucide.createIcons();
+        }
+
+        // --- EVENT LISTENERS ---
+        searchInput.addEventListener('input', (e) => {
+            state.searchQuery = e.target.value;
+            renderContent();
+        });
+
+        tagFilterSelect.addEventListener('change', (e) => {
+            state.selectedTag = e.target.value;
+            renderContent();
+        });
+
+        clearBtn.addEventListener('click', () => {
+            state.searchQuery = '';
+            state.activeTab = 'todos';
+            state.selectedTag = 'todas';
+            searchInput.value = '';
+            tagFilterSelect.value = 'todas';
+            renderTabs();
+            renderContent();
+        });
+
+        // Start
+        init();
+
+    </script>
+</body>
+</html>
