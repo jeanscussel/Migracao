@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timeline Corporativa - Migração de Sistema</title>
+    <!-- Fonte Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Ícones Phosphor (para controles modernos) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        /* --- Variáveis de Design --- */
+        :root {
+            /* Cores Institucionais */
+            --primary: #008f53;       /* Verde principal */
+            --primary-dark: #005f37;  /* Verde escuro para hover/texto */
+            --primary-light: #e8f5e9; /* Fundo suave */
+            --accent: #2563eb;        /* Azul para interações */
+            
+            /* Tons Neutros */
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --text-main: #1e293b;
+            --text-sec: #64748b;
+            --border: #e2e8f0;
+            
+            /* Dimensões */
+            --card-width: 280px; 
+            --card-gap: 60px;
+            --timeline-height: 850px; /* Aumentado para 850px para o novo espaçamento */
+        }
+
+        /* --- Reset e Base --- */
+        * { box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- Header / Topo --- */
+        header {
+            background: var(--bg-card);
+            padding: 12px 32px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 20;
+            flex-shrink: 0;
+        }
+
+        .header-title h1 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin: 0;
+            color: var(--primary-dark);
+        }
+        
+        .header-title span {
+            font-size: 0.8rem;
+            color: var(--text-sec);
+            font-weight: 400;
+        }
+
+        /* Barra de progresso visual */
+        .progress-container {
+            flex-grow: 1;
+            max-width: 200px;
+            margin-left: 40px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .progress-track {
+            width: 100%;
+            height: 4px;
+            background: var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            transition: width 0.5s ease-out;
+        }
+
+        /* Estilo para o texto de porcentagem */
+        .progress-text {
+            font-size: 0.8rem;
+            color: var(--primary);
+            font-weight: 700;
+            min-width: 40px;
+            text-align: right;
+        }
+
+        /* --- Área de Descrição em Destaque --- */
+        .description-bar {
+            background: white;
+            padding: 20px 40px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+            min-height: 110px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 15;
+            box-shadow: 0 4px 6px -4px rgba(0,0,0,0.05);
+            transition: opacity 0.3s ease;
+        }
+
+        .desc-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            opacity: 0.8;
+        }
+
+        .desc-text {
+            font-size: 1.1rem;
+            color: var(--text-main);
+            max-width: 800px;
+            line-height: 1.5;
+            font-weight: 500;
+        }
+        
+        .fade-text {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- Área da Timeline (Canvas) --- */
+        .timeline-wrapper {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        /* Linha Central Fixa 
+           AJUSTE: Subi a linha 50px acima do centro exato (calc(50% - 50px))
+           para acompanhar o deslocamento dos cartões.
+        */
+        .timeline-line-bg {
+            position: absolute;
+            top: calc(50% - 50px);
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: #cbd5e1;
+            z-index: 0;
+            transform: translateY(-50%);
+        }
+
+        /* Container Móvel (Track) */
+        .timeline-track {
+            display: flex;
+            align-items: center;
+            padding: 0 50vw; 
+            height: 100%;
+            transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+            will-change: transform;
+        }
+
+        /* --- O Evento (Item) --- */
+        .event-item {
+            position: relative;
+            width: var(--card-width);
+            margin: 0 calc(var(--card-gap) / 2);
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.4s;
+            filter: grayscale(100%) opacity(0.5);
+        }
+
+        .event-item.active {
+            filter: grayscale(0%) opacity(1);
+            z-index: 10;
+        }
+
+        /* Marcador (Bolinha na linha) */
+        .event-dot {
+            width: 18px;
+            height: 18px;
+            background: var(--bg-card);
+            border: 4px solid var(--text-sec);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 5;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 0 4px var(--bg-body);
+        }
+
+        .event-item.active .event-dot {
+            background: var(--primary);
+            border-color: var(--primary);
+            transform: translate(-50%, -50%) scale(1.4);
+            box-shadow: 0 0 0 8px rgba(0, 143, 83, 0.15);
+        }
+
+        .event-item.current-milestone .event-dot {
+            background: #fff;
+            border-color: var(--accent);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+        }
+
+        /* Conexão vertical - HASTE */
+        .event-connector {
+            position: absolute;
+            width: 2px;
+            background: var(--border);
+            left: 50%;
+            transition: height 0.3s;
+            z-index: 1; /* Atrás da bolinha */
+        }
+        
+        /* CORREÇÃO CRÍTICA DE POSICIONAMENTO FINAL
+           - Margem aumentada para 270px (+20px solicitados)
+           - Conector aumentado para 195px
+        */
+        
+        /* IMPARES (ACIMA) */
+        .event-item:nth-child(odd) .event-card { 
+            margin-bottom: 270px; 
+        }
+        .event-item:nth-child(odd) .event-connector { 
+            bottom: 50%; 
+            top: auto; 
+            height: 195px; /* Haste bem longa para cima */
+            transform: translateX(-50%); 
+        }
+        
+        /* PARES (ABAIXO) */
+        .event-item:nth-child(even) .event-card { 
+            margin-top: 270px; 
+        }
+        .event-item:nth-child(even) .event-connector { 
+            top: 50%; 
+            bottom: auto; 
+            height: 195px; /* Haste bem longa para baixo */
+            transform: translateX(-50%); 
+        }
+
+        /* Cartão de Conteúdo */
+        .event-card {
+            background: var(--bg-card);
+            width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border);
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            overflow: hidden;
+            position: relative;
+            z-index: 10; /* Sempre acima da linha */
+        }
+
+        .event-item.active .event-card {
+            transform: scale(1.1);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15);
+            border-color: var(--primary);
+        }
+        
+        /* Badge de "Etapa Atual" */
+        .status-badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: var(--primary);
+            color: white;
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            padding: 3px 6px;
+            border-radius: 4px;
+            display: none;
+            z-index: 2;
+        }
+        .event-item.current-milestone .status-badge { display: block; }
+
+        /* Imagem */
+        .card-img-wrapper {
+            width: 100%;
+            height: 120px;
+            background: #f1f5f9;
+            position: relative;
+        }
+        .card-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .card-content { 
+            padding: 12px; 
+            text-align: center;
+        }
+
+        .card-date {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .card-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            margin: 0;
+            color: var(--text-main);
+            line-height: 1.2;
+        }
+
+        /* --- Barra de Controle Inferior --- */
+        .control-deck {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 8px 12px;
+            border-radius: 50px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            display: flex;
+            gap: 12px;
+            border: 1px solid #e2e8f0;
+            z-index: 100;
+        }
+
+        .btn-control {
+            border: none;
+            background: transparent;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-sec);
+            transition: all 0.2s;
+        }
+
+        .btn-control:hover {
+            background: #f1f5f9;
+            color: var(--primary);
+            transform: scale(1.1);
+        }
+
+        .btn-control.primary {
+            background: var(--primary);
+            color: white;
+            width: auto;
+            padding: 0 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            gap: 8px;
+        }
+        .btn-control.primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+        
+        .btn-control:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+
+        /* --- Responsividade --- */
+        @media (max-width: 768px) {
+            .description-bar {
+                padding: 15px;
+                min-height: auto;
+            }
+            .desc-text { font-size: 0.9rem; }
+            .header-title span, .progress-container { display: none; }
+            
+            .timeline-track { padding: 0 calc(50vw - 140px); }
+            
+            /* Em mobile: Ajustes específicos, aqui não aplicamos o shift up vertical do desktop */
+            .event-item:nth-child(odd) .event-card,
+            .event-item:nth-child(even) .event-card {
+                margin: 0;
+                margin-top: 100px; 
+            }
+             .event-item:nth-child(odd) .event-connector,
+            .event-item:nth-child(even) .event-connector {
+                top: 0; 
+                bottom: auto;
+                height: 100px;
+                transform: translateX(-50%);
+            }
+            
+            .timeline-line-bg { top: 220px; transform: none; } 
+            .timeline-track { padding-top: 220px; align-items: flex-start; }
+            
+            .control-deck { width: 90%; justify-content: space-between; border-radius: 16px; }
+            .btn-control.primary span { display: none; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Cabeçalho -->
+    <header>
+        <div class="header-title">
+            <h1>Timeline Migração</h1>
+            <span>CrediSeara</span>
+        </div>
+        
+        <div class="progress-container">
+            <div class="progress-track">
+                <div class="progress-fill" id="progress-bar"></div>
+            </div>
+            <!-- Adicionado o elemento de texto aqui -->
+            <div class="progress-text" id="progress-text">0%</div>
+        </div>
+    </header>
+
+    <!-- Barra de Descrição -->
+    <div class="description-bar">
+        <div id="desc-container" class="fade-text">
+            <div class="desc-title" id="display-date">DATA</div>
+            <div class="desc-text" id="display-desc">Descrição do evento aparecerá aqui.</div>
+        </div>
+    </div>
+
+    <!-- Área Principal -->
+    <div class="timeline-wrapper" id="timeline-container">
+        <div class="timeline-line-bg"></div>
+        <div class="timeline-track" id="track">
+            <!-- Items inseridos via JS -->
+        </div>
+    </div>
+
+    <!-- Controles -->
+    <div class="control-deck">
+        <button class="btn-control" id="btn-first" title="Início"><i class="ph ph-skip-back-circle" style="font-size: 24px;"></i></button>
+        <button class="btn-control" id="btn-prev" title="Anterior"><i class="ph ph-arrow-circle-left" style="font-size: 24px;"></i></button>
+
+        <button class="btn-control primary" id="btn-current">
+            <i class="ph ph-crosshair" style="font-size: 20px;"></i>
+            <span>Etapa Atual</span>
+        </button>
+
+        <button class="btn-control" id="btn-next" title="Próxima"><i class="ph ph-arrow-circle-right" style="font-size: 24px;"></i></button>
+        <button class="btn-control" id="btn-last" title="Fim"><i class="ph ph-skip-forward-circle" style="font-size: 24px;"></i></button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DADOS ATUALIZADOS ---
+            const timelineData = [
+                {
+                    data: "03/2025",
+                    titulo: "Definição de migração",
+                    descricao: "Definição pelo Conselho de Administração e Diretoria Executiva pela migração do Core Bancário.",
+                    etapaAtual: false,
+                    imagemUrl: "https://github.com/jeanscussel/Migracao/blob/main/img/definicao%20migracao.jpeg?raw=true"
+                },
+                {
+                    data: "04/2025",
+                    titulo: "Comissão de avaliação",
+                    descricao: "Definição da Comissão de avaliação: Ademilso, Anderson, Angélica, Jean, Rafael e Thayane.",
+                    etapaAtual: false,
+                    imagemUrl: "https://github.com/jeanscussel/Migracao/blob/main/img/reuni%C3%A3o%20qualquer.jpg?raw=true"
+                }, 
+                {
+                    data: "06/05/2025",
+                    titulo: "Mapeamento funcional",
+                    descricao: "Mapeamento das funcionalidades. Avaliação dos sistemas: Fácil, Credsoft e STU.",
+                    etapaAtual: false,
+                    imagemUrl: "https://github.com/jeanscussel/Migracao/blob/main/img/mapeamento.png?raw=true"
+                },
+                {
+                    data: "13/05/2025",
+                    titulo: "Apresentação Fácil",
+                    descricao: "Apresentação do Sistema Fácil por meio de reunião online junto com a Fenacoops.",
+                    etapaAtual: false,
+                    imagemUrl: null
+                },
+                {
+                    data: "14/05/2025",
+                    titulo: "Apresentação Uniprime",
+                    descricao: "Apresentação presencial do sistema STU. Alexsander Peloso e Thales Correa.",
+                    etapaAtual: false,
+                    imagemUrl: "https://github.com/jeanscussel/Migracao/blob/main/img/uniprime%20apresentacao.JPG?raw=true"
+                },
+                {
+                    data: "30/05/2025",
+                    titulo: "Apresentação CredSoft",
+                    descricao: "Apresentação online do Sistema CredSoft.",
+                    etapaAtual: false,
+                    imagemUrl: null
+                },
+                {
+                    data: "30/06/2025",
+                    titulo: "Visita LarCredi",
+                    descricao: "Visita técnica presencial à LarCredi (usuária STU) em Medianeira, PR.",
+                    etapaAtual: false,
+                    imagemUrl: "https://github.com/jeanscussel/Migracao/blob/main/img/lar-cooperativa-compra-supermercado-maronesi-de-medianeira1.jpg?raw=true"
+                },
+                {
+                    data: "14/07/2025",
+                    titulo: "Visita Credicoopavel",
+                    descricao: "Visita técnica à Credicoopavel (usuária Fácil) em Cascavel, PR.",
+                    etapaAtual: false,
+                    imagemUrl: "https://github.com/jeanscussel/Migracao/blob/main/img/coopavelsedenova.jpg?raw=true"
+                },
+                {
+                    data: "19/08/2025",
+                    titulo: "Definição do Sistema",
+                    descricao: "Comissão decidiu pela adoção do sistema STU da Uniprime pela robustez e suporte.",
+                    etapaAtual: false,
+                    imagemUrl: "https://github.com/jeanscussel/Migracao/blob/main/img/definicao%20migracao.jpeg?raw=true"
+                },
+                {
+                    data: "20/08/2025",
+                    titulo: "Aprovação Conselho",
+                    descricao: "Conselho de Administração aprovou a migração ao STU após análise da comissão.",
+                    etapaAtual: false,
+                    imagemUrl: "https://github.com/jeanscussel/Migracao/blob/main/img/aprovado.webp?raw=true"
+                },
+                {
+                    data: "30/09/2025",
+                    titulo: "Negociação Contratual",
+                    descricao: "Início das negociações com a Uniprime. Termos, prazos e responsabilidades.",
+                    etapaAtual: false,
+                    imagemUrl: "https://github.com/jeanscussel/Migracao/blob/main/img/negociacao%20de%20contrato.jpg?raw=true"
+                },
+                {
+                    data: "30/10/2025",
+                    titulo: "Kickoff Comitê",
+                    descricao: "Reunião inicial do comitê de migração. Participantes: Ademilso, Anderson, Paula, Angélica, Adrieli, Rafael, Thayane e Jean.",
+                    etapaAtual: false,
+                    imagemUrl: "https://github.com/jeanscussel/Migracao/blob/main/img/reuni%C3%A3o%20comite%201.jpeg?raw=true"
+                },
+                {
+                    data: "06/11/2025",
+                    titulo: "Alinhamento Crédito",
+                    descricao: "Reunião com Uniprime sobre produtos de crédito e ajustes de cronograma.",
+                    etapaAtual: false,
+                    imagemUrl: "https://github.com/jeanscussel/Migracao/blob/main/img/reuni%C3%A3o%20qualquer.jpg?raw=true" 
+                },
+                {
+                    data: "12/11/2025",
+                    titulo: "Extração de Dados",
+                    descricao: "Início da extração de dados do Coopcred para migração ao STU.",
+                    etapaAtual: false,
+                    imagemUrl: "https://github.com/jeanscussel/Migracao/blob/main/img/extracao%20dados.png?raw=true"
+                },
+                {
+                    data: "13/11/2025",
+                    titulo: "Alinhamento RH/Adm",
+                    descricao: "Reunião sobre Tesouraria, RH, Contabilidade e Fiscal. Definição de consultorias.",
+                    etapaAtual: false,
+                    imagemUrl: null
+                },
+                {
+                    data: "04/12/2025",
+                    titulo: "Lançamento Oficial",
+                    descricao: "Evento de lançamento do cronograma para todos os colaboradores no Consórcio Itá às 17:00h.",
+                    etapaAtual: true,
+                    imagemUrl: "https://github.com/jeanscussel/Migracao/blob/main/img/consocio%20ita%20ademilso%20apres.png?raw=true"
+                },
+                {
+                    data: "08/12/2025",
+                    titulo: "Treinamentos Internos",
+                    descricao: "Início dos treinamentos intensivos em dois turnos para a equipe.",
+                    etapaAtual: false,
+                    imagemUrl: "https://github.com/jeanscussel/Migracao/blob/main/img/credisearenses%20mesa%20de%20reuniao.png?raw=true"
+                },
+                {
+                    data: "15/12/2025",
+                    titulo: "App nas Lojas",
+                    descricao: "Publicação do novo app nas lojas (ainda indisponível para uso).",
+                    etapaAtual: false,
+                    imagemUrl: "https://github.com/jeanscussel/Migracao/blob/main/img/stores.webp?raw=true"
+                },
+                {
+                    data: "05/01/2026",
+                    titulo: "Comunicação Associado",
+                    descricao: "Início dos comunicados oficiais aos associados sobre a mudança (E-mail, App, WhatsApp).",
+                    etapaAtual: false,
+                    imagemUrl: "https://github.com/jeanscussel/Migracao/blob/main/img/gustavo%20telefone.png?raw=true"
+                },
+                {
+                    data: "19/01/2026",
+                    titulo: "Liberação do App",
+                    descricao: "App disponível para download e cadastro de acesso (Facial/Vídeo).",
+                    etapaAtual: false,
+                    imagemUrl: "https://github.com/jeanscussel/Migracao/blob/main/img/app%20credi%20loja.png?raw=true"
+                },
+                {
+                    data: "30/01/2026",
+                    titulo: "Dia D - Virada",
+                    descricao: "Migração oficial. Sistemas antigos deixam de funcionar e o STU assume.",
+                    etapaAtual: false,
+                    imagemUrl: "https://github.com/jeanscussel/Migracao/blob/main/img/pessoa%20migrando%20sistemas.png?raw=true"
+                },
+                {
+                    data: "02/02/2026",
+                    titulo: "Início STU",
+                    descricao: "Primeiro dia útil operando 100% no novo sistema.",
+                    etapaAtual: false,
+                    imagemUrl: "https://github.com/jeanscussel/Migracao/blob/main/img/credisearenses%20segurando%20logo.png?raw=true"
+                },
+                {
+                    data: "Pós Migração",
+                    titulo: "Fechamento Contábil",
+                    descricao: "Avaliação e validação dos dados migrados, seguida do fechamento contábil no novo sistema.",
+                    etapaAtual: false,
+                    imagemUrl: null
+                },
+                {
+                    data: "Pós Migração",
+                    titulo: "Integração Agricredit",
+                    descricao: "Integração do sistema STU com a plataforma Agricredit para otimizar operações.",
+                    etapaAtual: false,
+                    imagemUrl: null
+                },
+                {
+                    data: "Pós Migração",
+                    titulo: "Domicílio Bancário",
+                    descricao: "Obtenção e configuração do domicílio bancário para facilitar transações.",
+                    etapaAtual: false,
+                    imagemUrl: null
+                },
+                {
+                    data: "Pós Migração",
+                    titulo: "Emissão de Boletos",
+                    descricao: "Emissão de boletos bancários diretamente pelo sistema STU.",
+                    etapaAtual: false,
+                    imagemUrl: null
+                },
+                {
+                    data: "Pós Migração",
+                    titulo: "Antecipação",
+                    descricao: "Implementação do serviço de antecipação de recebíveis para cooperados.",
+                    etapaAtual: false,
+                    imagemUrl: null
+                },
+                {
+                    data: "Pós Migração",
+                    titulo: "DDA",
+                    descricao: "Implementação do Débito Direto Autorizado (DDA) para pagamentos.",
+                    etapaAtual: false,
+                    imagemUrl: null
+                },
+                {
+                    data: "Pós Migração",
+                    titulo: "Cartões",
+                    descricao: "Cartão de crédito e débito emitido diretamente pela CrediSeara.",
+                    etapaAtual: false,
+                    imagemUrl: null
+                },
+                {
+                    data: "Pós Migração",
+                    titulo: "Caixa Eletrônico",
+                    descricao: "A Crediseara passará a ter caixas eletrônicos próprios.",
+                    etapaAtual: false,
+                    imagemUrl: null
+                }
+            ];
+
+            // --- ELEMENTOS ---
+            const track = document.getElementById('track');
+            const progressFill = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text'); // Referência ao texto
+            
+            // Elementos da Descrição no Topo
+            const displayDate = document.getElementById('display-date');
+            const displayDesc = document.getElementById('display-desc');
+            const descContainer = document.getElementById('desc-container');
+
+            // Botões
+            const btnFirst = document.getElementById('btn-first');
+            const btnPrev = document.getElementById('btn-prev');
+            const btnNext = document.getElementById('btn-next');
+            const btnLast = document.getElementById('btn-last');
+            const btnCurrent = document.getElementById('btn-current');
+
+            // Estado
+            let currentIndex = 0;
+            let currentStepIndex = 0;
+            let itemWidth = 0;
+
+            // --- RENDERIZAÇÃO ---
+            function render() {
+                track.innerHTML = '';
+                
+                timelineData.forEach((item, index) => {
+                    if (item.etapaAtual) currentStepIndex = index;
+
+                    const el = document.createElement('div');
+                    el.className = `event-item ${item.etapaAtual ? 'current-milestone' : ''}`;
+                    el.dataset.index = index;
+
+                    const fallbackImg = `https://placehold.co/280x120/e2e8f0/64748b?text=Sem+Imagem`;
+                    const imgUrl = item.imagemUrl ? item.imagemUrl : fallbackImg;
+                    
+                    el.innerHTML = `
+                        <div class="event-connector"></div>
+                        <div class="event-dot"></div>
+                        <div class="event-card">
+                            <div class="status-badge">Atual</div>
+                            <div class="card-img-wrapper">
+                                <img src="${imgUrl}" class="card-img" alt="${item.titulo}" onerror="this.src='${fallbackImg}'">
+                            </div>
+                            <div class="card-content">
+                                <span class="card-date">${item.data}</span>
+                                <h3 class="card-title">${item.titulo}</h3>
+                            </div>
+                        </div>
+                    `;
+
+                    el.addEventListener('click', () => {
+                        goToIndex(index);
+                    });
+
+                    track.appendChild(el);
+                });
+
+                // Inicializa
+                setTimeout(() => {
+                    calculateDimensions();
+                    goToIndex(currentStepIndex); 
+                }, 100);
+            }
+
+            function calculateDimensions() {
+                const firstItem = track.children[0];
+                if (firstItem) {
+                    const style = window.getComputedStyle(firstItem);
+                    const margin = parseFloat(style.marginLeft) + parseFloat(style.marginRight);
+                    itemWidth = firstItem.offsetWidth + margin;
+                }
+            }
+
+            // --- NAVEGAÇÃO ---
+            function goToIndex(index) {
+                if (index < 0) index = 0;
+                if (index >= timelineData.length) index = timelineData.length - 1;
+
+                currentIndex = index;
+
+                // Move a timeline
+                // Ajuste de centralização: subtrai metade da largura do item
+                const centerOffset = itemWidth / 2;
+                const position = -(currentIndex * itemWidth) - centerOffset;
+                
+                // NOVO: Aplica deslocamento vertical (-50px) apenas em desktop
+                if (window.innerWidth <= 768) {
+                    track.style.transform = `translateX(${position}px)`;
+                } else {
+                    track.style.transform = `translateX(${position}px) translateY(-50px)`;
+                }
+
+                // Atualiza classes
+                Array.from(track.children).forEach((child, i) => {
+                    if (i === currentIndex) {
+                        child.classList.add('active');
+                    } else {
+                        child.classList.remove('active');
+                    }
+                });
+
+                updateDescription(index);
+                updateControls();
+                updateProgress();
+            }
+
+            function updateDescription(index) {
+                const item = timelineData[index];
+                
+                descContainer.classList.remove('fade-text');
+                void descContainer.offsetWidth; // Trigger reflow
+                
+                displayDate.textContent = `${item.data} - ${item.titulo}`;
+                displayDesc.innerHTML = item.descricao;
+                
+                descContainer.classList.add('fade-text');
+            }
+
+            function updateControls() {
+                btnFirst.disabled = (currentIndex === 0);
+                btnPrev.disabled = (currentIndex === 0);
+                btnNext.disabled = (currentIndex === timelineData.length - 1);
+                btnLast.disabled = (currentIndex === timelineData.length - 1);
+            }
+
+            function updateProgress() {
+                const total = timelineData.length - 1;
+                const percent = Math.round((currentIndex / total) * 100);
+                progressFill.style.width = `${percent}%`;
+                
+                // Atualiza o texto da porcentagem
+                if (progressText) {
+                    progressText.textContent = `${percent}%`;
+                }
+            }
+
+            // --- LISTENERS ---
+            btnFirst.addEventListener('click', () => goToIndex(0));
+            btnPrev.addEventListener('click', () => goToIndex(currentIndex - 1));
+            btnNext.addEventListener('click', () => goToIndex(currentIndex + 1));
+            btnLast.addEventListener('click', () => goToIndex(timelineData.length - 1));
+            btnCurrent.addEventListener('click', () => goToIndex(currentStepIndex));
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft') goToIndex(currentIndex - 1);
+                if (e.key === 'ArrowRight') goToIndex(currentIndex + 1);
+            });
+
+            window.addEventListener('resize', () => {
+                calculateDimensions();
+                goToIndex(currentIndex);
+            });
+
+            render();
+        });
+    </script>
+</body>
+</html>
